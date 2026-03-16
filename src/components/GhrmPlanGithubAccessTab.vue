@@ -103,7 +103,7 @@ const canAccess = computed(() => {
   return status.access_status === 'active';
 });
 
-const installCommands = computed(() => {
+const installCommands = computed((): Record<string, string> => {
   const instr = store.installInstructions;
   if (!instr) return {};
   return {
