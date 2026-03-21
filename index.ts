@@ -4,6 +4,13 @@ import { registerCmsVueComponent } from '../cms/src/registry/vueComponentRegistr
 import { checkoutContextRegistry } from '../checkout/checkoutContextRegistry';
 import { planDetailTabRegistry } from '@/utils/planDetailTabRegistry';
 import en from './locales/en.json';
+import de from './locales/de.json';
+import es from './locales/es.json';
+import fr from './locales/fr.json';
+import ja from './locales/ja.json';
+import ru from './locales/ru.json';
+import th from './locales/th.json';
+import zh from './locales/zh.json';
 
 export const ghrmPlugin: IPlugin = {
   name: 'ghrm',
@@ -14,6 +21,13 @@ export const ghrmPlugin: IPlugin = {
 
   install(sdk: IPlatformSDK) {
     sdk.addTranslations('en', en);
+    sdk.addTranslations('de', de);
+    sdk.addTranslations('es', es);
+    sdk.addTranslations('fr', fr);
+    sdk.addTranslations('ja', ja);
+    sdk.addTranslations('ru', ru);
+    sdk.addTranslations('th', th);
+    sdk.addTranslations('zh', zh);
 
     // Register GHRM Vue components into the CMS widget registry
     Promise.all([
