@@ -1,7 +1,7 @@
 import type { IPlugin, IPlatformSDK } from 'vbwd-view-component';
 import { userNavRegistry } from '@/plugins/userNavRegistry';
 import { registerCmsVueComponent } from '../cms/src/registry/vueComponentRegistry';
-import { checkoutContextRegistry } from '../checkout/checkoutContextRegistry';
+import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
 import { planDetailTabRegistry } from '@/utils/planDetailTabRegistry';
 import en from './locales/en.json';
 import de from './locales/de.json';
