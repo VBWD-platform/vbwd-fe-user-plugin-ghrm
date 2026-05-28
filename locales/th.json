@@ -35,6 +35,7 @@
     "syncing": "กำลังซิงค์...",
     "lastSynced": "ซิงค์ล่าสุด",
     "never": "ไม่เคย",
-    "accessingPackage": "กำลังเข้าถึง:"
+    "accessingPackage": "กำลังเข้าถึง:",
+    "features": "คุณสมบัติ"
   }
 }

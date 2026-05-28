@@ -35,6 +35,7 @@
     "syncing": "Synchronisation...",
     "lastSynced": "Dernière synchronisation",
     "never": "Jamais",
-    "accessingPackage": "Obtention de l'accès à :"
+    "accessingPackage": "Obtention de l'accès à :",
+    "features": "Fonctionnalités"
   }
 }

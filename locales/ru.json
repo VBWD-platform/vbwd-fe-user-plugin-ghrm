@@ -35,6 +35,7 @@
     "syncing": "Синхронизация...",
     "lastSynced": "Последняя синхронизация",
     "never": "Никогда",
-    "accessingPackage": "Получение доступа к:"
+    "accessingPackage": "Получение доступа к:",
+    "features": "Функции"
   }
 }
