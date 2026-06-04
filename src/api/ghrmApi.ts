@@ -72,21 +72,41 @@ export interface GhrmPaginated<T> {
   pages: number;
 }
 
-export interface GhrmInstallInstructions {
+export type GhrmMembershipStatus = 'ACTIVE' | 'INVITED' | 'GRACE' | 'REVOKED' | 'ERROR';
+
+export interface GhrmMembership {
   package_slug: string;
-  deploy_token: string;
-  npm: string;
-  composer: string;
-  pip: string;
-  git: string;
+  package_name: string;
+  status: GhrmMembershipStatus;
+  invited_at?: string | null;
+  grace_expires_at?: string | null;
+  invitations_url?: string | null;
+  last_error?: string | null;
 }
 
 export interface GhrmAccessStatus {
   connected: boolean;
   github_username?: string;
-  access_status?: string;
-  grace_expires_at?: string | null;
+  memberships?: GhrmMembership[];
 }
+
+export interface GhrmActiveInstall {
+  state: 'active';
+  package_slug: string;
+  github_username: string;
+  pat_steps: string[];
+  clone_https: string;
+  clone_ssh: string;
+}
+
+export interface GhrmInvitedInstall {
+  state: 'invited';
+  package_slug: string;
+  message: string;
+  invitations_url: string;
+}
+
+export type GhrmPackageInstall = GhrmActiveInstall | GhrmInvitedInstall;
 
 export interface GhrmCategory {
   slug: string;
@@ -122,7 +142,7 @@ export const ghrmApi = {
   getVersions(slug: string): Promise<{ tag: string; date: string; notes: string; assets: { name: string; url: string }[] }[]> {
     return get(`${API}/packages/${slug}/versions`);
   },
-  getInstallInstructions(slug: string): Promise<GhrmInstallInstructions> {
+  getPackageInstall(slug: string): Promise<GhrmPackageInstall> {
     return get(`${API}/packages/${slug}/install`);
   },
   getPackageByPlan(planId: string): Promise<GhrmPackage> {

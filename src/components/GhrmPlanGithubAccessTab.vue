@@ -2,136 +2,182 @@
   <div class="ghrm-github-access-tab">
     <div class="access-section">
       <h3 class="section-title">
-        GitHub Connection
+        {{ $t('ghrm.membership.connectionTitle') }}
       </h3>
       <GhrmGithubConnectButton />
     </div>
 
     <div
-      v-if="noPackage"
+      v-if="store.accessStatus && !store.accessStatus.connected"
       class="access-message access-message--info"
-      data-testid="no-package-message"
+      data-testid="not-connected-message"
     >
-      This plan does not include a software package with GitHub repository access.
+      {{ $t('ghrm.membership.connectPrompt') }}
     </div>
 
     <div
-      v-else-if="store.accessStatus"
+      v-else-if="memberships.length"
       class="access-section"
     >
       <h3 class="section-title">
-        Access Status
+        {{ $t('ghrm.membership.title') }}
       </h3>
 
       <div
-        v-if="!store.accessStatus.connected"
-        class="access-message access-message--info"
-        data-testid="not-connected-message"
+        v-for="membership in memberships"
+        :key="membership.package_slug"
+        class="membership-row"
+        data-testid="membership-row"
       >
-        Connect your GitHub account above to get clone instructions.
-      </div>
-
-      <template v-else>
-        <p
-          class="connected-label"
-          data-testid="connected-label"
-        >
-          Connected as <strong>@{{ store.accessStatus.github_username }}</strong>
-        </p>
-
-        <div
-          v-if="loadingInstructions"
-          class="access-message"
-        >
-          Loading instructions...
+        <div class="membership-head">
+          <span class="membership-name">{{ membership.package_name }}</span>
+          <span
+            class="chip"
+            :class="`chip--${membership.status.toLowerCase()}`"
+            :data-testid="`chip-${membership.status.toLowerCase()}`"
+          >
+            {{ chipLabel(membership.status) }}
+          </span>
         </div>
 
-        <template v-else-if="canAccess && store.installInstructions">
+        <!-- ACTIVE: connected + install panel (PAT steps + clone command) -->
+        <template v-if="membership.status === 'ACTIVE'">
+          <p class="membership-copy">
+            {{ $t('ghrm.membership.activeLabel') }}
+          </p>
           <div
-            class="install-block"
-            data-testid="install-instructions"
+            v-if="activeInstall(membership.package_slug)"
+            class="install-panel"
+            data-testid="install-panel"
           >
-            <div
-              v-for="(cmd, key) in installCommands"
-              :key="key"
-              class="install-command"
-            >
-              <span class="install-label">{{ key }}</span>
-              <div class="install-row">
-                <pre class="install-pre"><code>{{ cmd }}</code></pre>
+            <p class="install-intro">
+              {{ $t('ghrm.membership.patIntro') }}
+            </p>
+            <ol class="pat-steps">
+              <li
+                v-for="(step, index) in activeInstall(membership.package_slug)!.pat_steps"
+                :key="index"
+                class="pat-step"
+              >
+                {{ step }}
+              </li>
+            </ol>
+            <div class="clone-command">
+              <span class="clone-label">{{ $t('ghrm.membership.cloneHttps') }}</span>
+              <div class="clone-row">
+                <pre class="clone-pre"><code>{{ activeInstall(membership.package_slug)!.clone_https }}</code></pre>
                 <button
                   type="button"
                   class="copy-btn"
-                  :data-testid="`copy-${key}`"
-                  @click="copyCommand(cmd)"
+                  data-testid="copy-clone-https"
+                  @click="copyCommand(activeInstall(membership.package_slug)!.clone_https)"
                 >
-                  Copy
+                  {{ $t('ghrm.membership.copy') }}
+                </button>
+              </div>
+            </div>
+            <div class="clone-command">
+              <span class="clone-label">{{ $t('ghrm.membership.cloneSsh') }}</span>
+              <div class="clone-row">
+                <pre class="clone-pre"><code>{{ activeInstall(membership.package_slug)!.clone_ssh }}</code></pre>
+                <button
+                  type="button"
+                  class="copy-btn"
+                  data-testid="copy-clone-ssh"
+                  @click="copyCommand(activeInstall(membership.package_slug)!.clone_ssh)"
+                >
+                  {{ $t('ghrm.membership.copy') }}
                 </button>
               </div>
             </div>
           </div>
         </template>
 
-        <div
-          v-else-if="!canAccess"
-          class="access-message access-message--warning"
-          data-testid="inactive-message"
+        <!-- INVITED: accept the invitation on GitHub -->
+        <template v-else-if="membership.status === 'INVITED'">
+          <p class="membership-copy">
+            {{ $t('ghrm.membership.invitedLabel') }}
+          </p>
+          <a
+            v-if="invitationsUrl(membership)"
+            class="invitation-link"
+            data-testid="invitation-link"
+            :href="invitationsUrl(membership)!"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ $t('ghrm.membership.acceptInvitation') }}
+          </a>
+        </template>
+
+        <!-- GRACE: access ends on {date} -->
+        <p
+          v-else-if="membership.status === 'GRACE'"
+          class="membership-copy membership-copy--warning"
         >
-          You cannot clone or update your local code with a pending or inactive subscription.
-          Renew your plan to restore access.
-        </div>
-      </template>
+          {{ $t('ghrm.membership.graceLabel', { date: membership.grace_expires_at }) }}
+        </p>
+
+        <!-- REVOKED: access ended, renew -->
+        <p
+          v-else-if="membership.status === 'REVOKED'"
+          class="membership-copy membership-copy--warning"
+        >
+          {{ $t('ghrm.membership.revokedLabel') }}
+        </p>
+
+        <!-- ERROR: never shows the connected/active affordance -->
+        <p
+          v-else
+          class="membership-copy membership-copy--error"
+        >
+          {{ $t('ghrm.membership.errorLabel') }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import { ghrmApi } from '../api/ghrmApi';
+import type { GhrmActiveInstall, GhrmMembership, GhrmMembershipStatus } from '../api/ghrmApi';
 import GhrmGithubConnectButton from './GhrmGithubConnectButton.vue';
 
-const props = defineProps<{ planSlug: string; planId: string }>();
+defineProps<{ planSlug: string; planId: string }>();
 
 const store = useGhrmStore();
-const loadingInstructions = ref(false);
-const noPackage = ref(false);
 
-const canAccess = computed(() => {
+const memberships = computed<GhrmMembership[]>(() => {
   const status = store.accessStatus;
-  if (!status?.connected) return false;
-  return status.access_status === 'active';
+  if (!status?.connected) return [];
+  return status.memberships ?? [];
 });
 
-const installCommands = computed((): Record<string, string> => {
-  const instr = store.installInstructions;
-  if (!instr) return {};
-  return {
-    git: instr.git,
-    npm: instr.npm,
-    pip: instr.pip,
-    composer: instr.composer,
-  };
-});
+function chipLabel(status: GhrmMembershipStatus): string {
+  return status;
+}
+
+function activeInstall(slug: string): GhrmActiveInstall | null {
+  const payload = store.installPayloads[slug];
+  return payload && payload.state === 'active' ? payload : null;
+}
+
+function invitationsUrl(membership: GhrmMembership): string | null {
+  return membership.invitations_url ?? null;
+}
 
 onMounted(async () => {
   await store.fetchAccessStatus();
-  if (!store.accessStatus?.connected) return;
-  try {
-    const packageData = await ghrmApi.getPackageByPlan(props.planId);
-    if (canAccess.value) {
-      loadingInstructions.value = true;
-      await store.fetchInstallInstructions(packageData.slug);
-    }
-  } catch {
-    noPackage.value = true;
-  } finally {
-    loadingInstructions.value = false;
-  }
+  await Promise.all(
+    memberships.value
+      .filter((membership) => membership.status === 'ACTIVE')
+      .map((membership) => store.fetchInstall(membership.package_slug)),
+  );
 });
 
-function copyCommand(cmd: string): void {
-  navigator.clipboard.writeText(cmd).catch(() => {});
+function copyCommand(command: string): void {
+  navigator.clipboard.writeText(command).catch(() => {});
 }
 </script>
 
@@ -144,10 +190,44 @@ function copyCommand(cmd: string): void {
   color: var(--vbwd-text-heading, #2c3e50);
   margin: 0 0 12px;
 }
-.connected-label {
-  color: var(--vbwd-text-body, #333);
+.membership-row {
+  padding: 16px;
+  border: 1px solid var(--vbwd-border-color, #ddd);
+  border-radius: 8px;
   margin-bottom: 16px;
+  background: var(--vbwd-card-bg, #f8f9fa);
 }
+.membership-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.membership-name {
+  font-weight: 600;
+  color: var(--vbwd-text-heading, #2c3e50);
+}
+.chip {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.chip--active { background: var(--vbwd-color-success-soft, #d1fae5); color: var(--vbwd-color-success, #065f46); }
+.chip--invited { background: var(--vbwd-color-info-soft, #dbeafe); color: var(--vbwd-color-info, #1e40af); }
+.chip--grace { background: var(--vbwd-color-warning-soft, #fef3c7); color: var(--vbwd-color-warning, #92400e); }
+.chip--revoked,
+.chip--error { background: var(--vbwd-color-danger-soft, #fee2e2); color: var(--vbwd-color-danger, #991b1b); }
+.membership-copy {
+  color: var(--vbwd-text-body, #333);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.membership-copy--warning { color: var(--vbwd-color-warning, #92400e); }
+.membership-copy--error { color: var(--vbwd-color-danger, #991b1b); }
 .access-message {
   padding: 12px 16px;
   border-radius: 6px;
@@ -157,14 +237,18 @@ function copyCommand(cmd: string): void {
   border: 1px solid var(--vbwd-border-color, #ddd);
 }
 .access-message--info { border-color: var(--vbwd-color-primary, #3498db); }
-.access-message--warning {
-  background: color-mix(in srgb, var(--vbwd-color-warning, #f39c12) 10%, white);
-  border-color: var(--vbwd-color-warning, #f39c12);
-  color: var(--vbwd-text-heading, #2c3e50);
+.invitation-link {
+  display: inline-block;
+  color: var(--vbwd-color-primary, #3498db);
+  font-weight: 600;
+  text-decoration: underline;
 }
-.install-block { display: flex; flex-direction: column; gap: 16px; }
-.install-command { }
-.install-label {
+.install-panel { display: flex; flex-direction: column; gap: 16px; }
+.install-intro { margin: 0; font-size: 14px; color: var(--vbwd-text-body, #333); }
+.pat-steps { margin: 0; padding-left: 20px; color: var(--vbwd-text-body, #333); font-size: 14px; }
+.pat-step { margin-bottom: 4px; }
+.clone-command { }
+.clone-label {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -172,11 +256,11 @@ function copyCommand(cmd: string): void {
   margin-bottom: 4px;
   display: block;
 }
-.install-row { display: flex; align-items: stretch; gap: 8px; }
-.install-pre {
+.clone-row { display: flex; align-items: stretch; gap: 8px; }
+.clone-pre {
   flex: 1;
-  background: var(--vbwd-text-heading, #1e1e1e);
-  color: #d4d4d4;
+  background: var(--vbwd-code-bg, #1e1e1e);
+  color: var(--vbwd-code-text, #d4d4d4);
   padding: 10px 14px;
   border-radius: 6px;
   font-size: 13px;

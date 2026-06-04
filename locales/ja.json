@@ -36,6 +36,21 @@
     "lastSynced": "最終同期",
     "never": "未同期",
     "accessingPackage": "アクセスを取得中：",
-    "features": "機能"
+    "features": "機能",
+    "membership": {
+      "connectionTitle": "GitHub 接続",
+      "title": "アクセス状況",
+      "connectPrompt": "リポジトリへのアクセスを確認するには、上で GitHub アカウントを接続してください。",
+      "activeLabel": "接続済み — クローンアクセスが許可されました",
+      "invitedLabel": "招待を送信しました — GitHub で承認してください",
+      "acceptInvitation": "GitHub で招待を承認する",
+      "graceLabel": "アクセスは {date} に終了します。継続するにはサブスクリプションを更新してください。",
+      "revokedLabel": "アクセスが終了しました — サブスクリプションを更新してください",
+      "errorLabel": "接続エラー — サポートにお問い合わせください",
+      "patIntro": "このリポジトリに対して Contents: read を付与したファイングレインの個人アクセストークンを作成し、クローンしてください：",
+      "cloneHttps": "クローン (HTTPS)",
+      "cloneSsh": "クローン (SSH)",
+      "copy": "コピー"
+    }
   }
 }

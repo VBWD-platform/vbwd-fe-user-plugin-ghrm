@@ -36,6 +36,21 @@
     "lastSynced": "Last synced",
     "never": "Never",
     "accessingPackage": "Getting access to:",
-    "features": "Features"
+    "features": "Features",
+    "membership": {
+      "connectionTitle": "GitHub Connection",
+      "title": "Access Status",
+      "connectPrompt": "Connect your GitHub account above to see your repository access.",
+      "activeLabel": "Connected — clone access granted",
+      "invitedLabel": "Invitation sent — accept it on GitHub",
+      "acceptInvitation": "Accept invitation on GitHub",
+      "graceLabel": "Access ends on {date}. Renew your subscription to keep it.",
+      "revokedLabel": "Access ended — renew your subscription",
+      "errorLabel": "Connection error — please contact support",
+      "patIntro": "Create a fine-grained personal access token with Contents: read on this repository, then clone:",
+      "cloneHttps": "Clone (HTTPS)",
+      "cloneSsh": "Clone (SSH)",
+      "copy": "Copy"
+    }
   }
 }

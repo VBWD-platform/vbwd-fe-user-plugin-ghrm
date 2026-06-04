@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { ghrmApi, type GhrmPackage, type GhrmPackageListItem, type GhrmPaginated, type GhrmInstallInstructions, type GhrmAccessStatus } from '../api/ghrmApi';
+import { ghrmApi, type GhrmPackage, type GhrmPackageListItem, type GhrmPaginated, type GhrmPackageInstall, type GhrmAccessStatus, type GhrmMembership } from '../api/ghrmApi';
 
 export const useGhrmStore = defineStore('ghrm', () => {
   const packages = ref<GhrmPaginated<GhrmPackageListItem> | null>(null);
   const currentPackage = ref<GhrmPackage | null>(null);
   const relatedPackages = ref<GhrmPackageListItem[]>([]);
   const versions = ref<{ tag: string; date: string; notes: string; assets: { name: string; url: string }[] }[]>([]);
-  const installInstructions = ref<GhrmInstallInstructions | null>(null);
+  const installPayloads = ref<Record<string, GhrmPackageInstall>>({});
   const accessStatus = ref<GhrmAccessStatus | null>(null);
   const searchResults = ref<GhrmPaginated<GhrmPackageListItem> | null>(null);
   const loading = ref(false);
@@ -54,12 +54,12 @@ export const useGhrmStore = defineStore('ghrm', () => {
     }
   }
 
-  async function fetchInstallInstructions(slug: string) {
-    installInstructions.value = null;
+  async function fetchInstall(slug: string) {
     try {
-      installInstructions.value = await ghrmApi.getInstallInstructions(slug);
+      installPayloads.value = { ...installPayloads.value, [slug]: await ghrmApi.getPackageInstall(slug) };
     } catch {
-      installInstructions.value = null;
+      const { [slug]: _removed, ...rest } = installPayloads.value;
+      installPayloads.value = rest;
     }
   }
 
@@ -69,6 +69,10 @@ export const useGhrmStore = defineStore('ghrm', () => {
     } catch {
       accessStatus.value = { connected: false };
     }
+  }
+
+  function membershipFor(slug: string): GhrmMembership | undefined {
+    return accessStatus.value?.memberships?.find((membership) => membership.package_slug === slug);
   }
 
   async function search(query: string, page = 1) {
@@ -90,8 +94,8 @@ export const useGhrmStore = defineStore('ghrm', () => {
 
   return {
     packages, currentPackage, relatedPackages, versions,
-    installInstructions, accessStatus, searchResults, loading, error,
+    installPayloads, accessStatus, searchResults, loading, error,
     fetchPackages, fetchPackage, fetchRelated, fetchVersions,
-    fetchInstallInstructions, fetchAccessStatus, search, disconnect,
+    fetchInstall, fetchAccessStatus, membershipFor, search, disconnect,
   };
 });

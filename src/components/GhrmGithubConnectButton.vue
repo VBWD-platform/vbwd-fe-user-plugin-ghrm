@@ -16,12 +16,6 @@
         data-testid="ghrm-connected-badge"
       >
         {{ $t('ghrm.githubConnected') }} <strong>@{{ status.github_username }}</strong>
-        <span
-          class="ghrm-status-badge"
-          :class="`ghrm-status--${status.access_status}`"
-        >
-          {{ status.access_status }}
-        </span>
       </span>
       <button
         class="ghrm-disconnect-btn"
@@ -89,9 +83,5 @@ onMounted(async () => {
 .ghrm-disconnect-btn { padding: 6px 12px; background: transparent; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 4px; cursor: pointer; font-size: 13px; }
 .ghrm-disconnect-btn:hover:not(:disabled) { background: #fef2f2; }
 .ghrm-connected-badge { font-size: 14px; color: #374151; display: flex; align-items: center; gap: 8px; }
-.ghrm-status-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-.ghrm-status--active { background: #d1fae5; color: #065f46; }
-.ghrm-status--grace { background: #fef3c7; color: #92400e; }
-.ghrm-status--revoked { background: #fee2e2; color: #991b1b; }
 .ghrm-connect-error { color: #dc2626; font-size: 13px; margin: 4px 0 0; width: 100%; }
 </style>

@@ -259,7 +259,9 @@ async function loadCategoryLabel() {
   }
 }
 
-const isSubscribed = computed(() => accessStatus.value?.connected && accessStatus.value?.access_status === 'active');
+const isSubscribed = computed(
+  () => !!accessStatus.value?.connected && store.membershipFor(packageSlug.value)?.status === 'ACTIVE',
+);
 
 const activeTab = ref('overview');
 const tabs = [

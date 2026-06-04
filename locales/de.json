@@ -36,6 +36,21 @@
     "lastSynced": "Zuletzt synchronisiert",
     "never": "Nie",
     "accessingPackage": "Zugang wird gewährt für:",
-    "features": "Funktionen"
+    "features": "Funktionen",
+    "membership": {
+      "connectionTitle": "GitHub-Verbindung",
+      "title": "Zugriffsstatus",
+      "connectPrompt": "Verbinden Sie oben Ihr GitHub-Konto, um Ihren Repository-Zugriff zu sehen.",
+      "activeLabel": "Verbunden — Klon-Zugriff gewährt",
+      "invitedLabel": "Einladung gesendet — bestätigen Sie sie auf GitHub",
+      "acceptInvitation": "Einladung auf GitHub annehmen",
+      "graceLabel": "Zugriff endet am {date}. Verlängern Sie Ihr Abonnement, um ihn zu behalten.",
+      "revokedLabel": "Zugriff beendet — verlängern Sie Ihr Abonnement",
+      "errorLabel": "Verbindungsfehler — bitte kontaktieren Sie den Support",
+      "patIntro": "Erstellen Sie ein fein abgestuftes persönliches Zugriffstoken mit Contents: read für dieses Repository und klonen Sie dann:",
+      "cloneHttps": "Klonen (HTTPS)",
+      "cloneSsh": "Klonen (SSH)",
+      "copy": "Kopieren"
+    }
   }
 }
