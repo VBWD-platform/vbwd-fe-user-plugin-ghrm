@@ -62,8 +62,8 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
       connected: true,
       github_username: 'octocat',
       memberships: [
-        { package_slug: 'a', package_name: 'Alpha', status: 'INVITED', invitations_url: 'https://github.com/x/a/invitations' },
-        { package_slug: 'b', package_name: 'Beta', status: 'REVOKED' },
+        { package_slug: 'a', package_name: 'Alpha', status: 'invited', invitations_url: 'https://github.com/x/a/invitations' },
+        { package_slug: 'b', package_name: 'Beta', status: 'revoked' },
       ],
     })
 
@@ -78,7 +78,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'ACTIVE' }],
+      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'active' }],
     })
     mockGetPackageInstall.mockResolvedValue({
       state: 'active',
@@ -110,7 +110,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
       memberships: [{
         package_slug: 'a',
         package_name: 'Alpha',
-        status: 'INVITED',
+        status: 'invited',
         invited_at: '2026-06-01T00:00:00Z',
         invitations_url: 'https://github.com/acme/repo/invitations',
       }],
@@ -134,7 +134,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
       memberships: [{
         package_slug: 'a',
         package_name: 'Alpha',
-        status: 'GRACE',
+        status: 'grace',
         grace_expires_at: '2026-07-01T00:00:00Z',
       }],
     })
@@ -151,7 +151,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'REVOKED' }],
+      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'revoked' }],
     })
 
     const wrapper = await mountTab()
@@ -166,7 +166,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'ERROR', last_error: 'invite failed' }],
+      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'error', last_error: 'invite failed' }],
     })
 
     const wrapper = await mountTab()
@@ -191,7 +191,7 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'ACTIVE' }],
+      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'active' }],
     })
     mockGetPackageInstall.mockResolvedValue({
       state: 'active',

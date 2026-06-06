@@ -24,8 +24,8 @@
       <p class="ghrm-callback-sub">
         {{ errorMsg }}
       </p>
-      <router-link to="/dashboard/settings">
-        Back to settings
+      <router-link to="/dashboard">
+        Back to dashboard
       </router-link>
     </div>
   </div>
@@ -54,7 +54,11 @@ onMounted(async () => {
   try {
     await ghrmApi.handleOAuthCallback(code, state);
     status.value = 'success';
-    setTimeout(() => router.push('/dashboard/settings#github'), 1500);
+    // /dashboard is the canonical landing route for an authenticated user; the
+    // GHRM "GitHub Access" UI lives under /dashboard/plan/<slug>. There is no
+    // /dashboard/settings route (that target 404'd), and the connect flow keeps
+    // no originating plan slug, so redirect to the existing /dashboard.
+    setTimeout(() => router.push('/dashboard'), 1500);
   } catch (e) {
     status.value = 'error';
     errorMsg.value = (e as Error).message;

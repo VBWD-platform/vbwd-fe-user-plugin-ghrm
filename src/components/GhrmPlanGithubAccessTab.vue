@@ -41,7 +41,7 @@
         </div>
 
         <!-- ACTIVE: connected + install panel (PAT steps + clone command) -->
-        <template v-if="membership.status === 'ACTIVE'">
+        <template v-if="normalizedStatus(membership) === 'active'">
           <p class="membership-copy">
             {{ $t('ghrm.membership.activeLabel') }}
           </p>
@@ -94,7 +94,7 @@
         </template>
 
         <!-- INVITED: accept the invitation on GitHub -->
-        <template v-else-if="membership.status === 'INVITED'">
+        <template v-else-if="normalizedStatus(membership) === 'invited'">
           <p class="membership-copy">
             {{ $t('ghrm.membership.invitedLabel') }}
           </p>
@@ -112,7 +112,7 @@
 
         <!-- GRACE: access ends on {date} -->
         <p
-          v-else-if="membership.status === 'GRACE'"
+          v-else-if="normalizedStatus(membership) === 'grace'"
           class="membership-copy membership-copy--warning"
         >
           {{ $t('ghrm.membership.graceLabel', { date: membership.grace_expires_at }) }}
@@ -120,7 +120,7 @@
 
         <!-- REVOKED: access ended, renew -->
         <p
-          v-else-if="membership.status === 'REVOKED'"
+          v-else-if="normalizedStatus(membership) === 'revoked'"
           class="membership-copy membership-copy--warning"
         >
           {{ $t('ghrm.membership.revokedLabel') }}
@@ -154,6 +154,13 @@ const memberships = computed<GhrmMembership[]>(() => {
   return status.memberships ?? [];
 });
 
+// The backend serializes membership status as lowercase enum values
+// ('active' | 'invited' | 'grace' | 'revoked' | 'error'). Normalize once so
+// every branch compares against the same lowercase contract regardless of case.
+function normalizedStatus(membership: GhrmMembership): string {
+  return membership.status.toLowerCase();
+}
+
 function chipLabel(status: GhrmMembershipStatus): string {
   return status;
 }
@@ -171,7 +178,7 @@ onMounted(async () => {
   await store.fetchAccessStatus();
   await Promise.all(
     memberships.value
-      .filter((membership) => membership.status === 'ACTIVE')
+      .filter((membership) => normalizedStatus(membership) === 'active')
       .map((membership) => store.fetchInstall(membership.package_slug)),
   );
 });
