@@ -67,6 +67,23 @@
         {{ pkg.description }}
       </p>
 
+      <!-- S77 — tags + custom fields from the serialized payload (no extra fetch) -->
+      <div
+        v-if="hasTagsOrCustomFields"
+        class="ghrm-tags-custom-fields"
+        data-testid="package-tags-custom-fields"
+      >
+        <TagChips
+          v-if="pkg.tags && pkg.tags.length"
+          :tags="pkg.tags"
+        />
+        <CustomFieldsDisplay
+          v-if="pkg.custom_fields"
+          :custom-fields="pkg.custom_fields"
+          :field-defs="pkg.custom_field_defs"
+        />
+      </div>
+
       <!-- Features -->
       <div
         v-if="pkg.features && pkg.features.length"
@@ -219,7 +236,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from 'vbwd-view-component';
+import { useAuthStore, TagChips, CustomFieldsDisplay } from 'vbwd-view-component';
 import { useGhrmStore } from '../stores/useGhrmStore';
 import { ghrmApi, type GhrmBreadcrumbConfig } from '../api/ghrmApi';
 import GhrmMarkdownRenderer from '../components/GhrmMarkdownRenderer.vue';
@@ -234,6 +251,15 @@ const categorySlug = computed(() => route.params.category_slug as string);
 const packageSlug = computed(() => route.params.package_slug as string);
 const pkg = computed(() => store.currentPackage);
 const accessStatus = computed(() => store.accessStatus);
+
+// S77 — only render the tags / custom-fields block when there is content.
+const hasTagsOrCustomFields = computed(() => {
+  const current = pkg.value;
+  if (!current) return false;
+  const hasTags = Array.isArray(current.tags) && current.tags.length > 0;
+  const hasFields = !!current.custom_fields && Object.keys(current.custom_fields).length > 0;
+  return hasTags || hasFields;
+});
 
 // Breadcrumb
 const detailBreadcrumbConfig = ref<GhrmBreadcrumbConfig | null>(null);

@@ -52,6 +52,10 @@ export interface GhrmPackage {
   last_synced_at: string | null;
   related_slugs: string[];
   features?: string[];
+  // S77 — generic core tags / custom fields appended by the backend serializer.
+  tags?: string[];
+  custom_fields?: Record<string, unknown>;
+  custom_field_defs?: import('vbwd-view-component').CustomFieldDef[];
 }
 
 export interface GhrmPackageListItem {
