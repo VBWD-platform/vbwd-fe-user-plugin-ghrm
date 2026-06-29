@@ -16,7 +16,6 @@ export const ghrmPlugin: IPlugin = {
   name: 'ghrm',
   version: '1.0.0',
   description: 'GitHub Repo Manager — software catalogue with subscription-gated GitHub access',
-  dependencies: ['cms', 'checkout'],
   _active: false,
 
   install(sdk: IPlatformSDK) {
