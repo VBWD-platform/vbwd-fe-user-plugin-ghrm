@@ -14,7 +14,7 @@ import zh from './locales/zh.json';
 
 export const ghrmPlugin: IPlugin = {
   name: 'ghrm',
-  version: '1.0.0',
+  version: '26.6',
   description: 'GitHub Repo Manager — software catalogue with subscription-gated GitHub access',
   _active: false,
 
