@@ -110,6 +110,7 @@ export const ghrmPlugin: IPlugin = {
     userNavRegistry.register({
       pluginName: 'ghrm',
       to: '/category',
+      icon: 'bag',
       labelKey: 'ghrm.title',
       testId: 'nav-ghrm',
       group: 'store',
