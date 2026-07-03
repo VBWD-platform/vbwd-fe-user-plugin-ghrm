@@ -117,22 +117,18 @@ export interface GhrmCategory {
   label: string;
 }
 
-export interface GhrmBreadcrumbConfig {
-  id: string;
-  separator: string;
-  root_name: string;
-  root_slug: string;
-  show_category: boolean;
-  max_label_length: number;
-  css: string;
+export interface GhrmConfig {
+  catalogue_page_slug: string;
+  detail_page_slug: string;
+  allow_extensive_github_permissions: boolean;
 }
 
 export const ghrmApi = {
+  getConfig(): Promise<GhrmConfig> {
+    return get(`${API}/config`);
+  },
   getCategories(): Promise<{ categories: GhrmCategory[] }> {
     return get(`${API}/categories`);
-  },
-  getWidgets(): Promise<{ widgets: GhrmBreadcrumbConfig[] }> {
-    return get(`${API}/widgets`);
   },
   listPackages(params: Record<string, string> = {}): Promise<GhrmPaginated<GhrmPackageListItem>> {
     return get(`${API}/packages`, params);

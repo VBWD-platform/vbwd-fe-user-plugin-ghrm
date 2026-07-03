@@ -34,7 +34,7 @@
       <router-link
         v-for="pkg in items"
         :key="pkg.id"
-        :to="`/category/backend/${pkg.slug}`"
+        :to="`${catalogueBase()}/backend/${pkg.slug}`"
         class="ghrm-search-result"
         :data-testid="`ghrm-result-${pkg.slug}`"
       >
@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useGhrmStore } from '../stores/useGhrmStore';
+import { catalogueBase } from '../catalogueBase';
 
 const store = useGhrmStore();
 const q = ref('');

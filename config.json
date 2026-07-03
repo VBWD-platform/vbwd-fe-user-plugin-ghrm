@@ -1,9 +1,4 @@
 {
-  "catalogue_route_prefix": {
-    "type": "string",
-    "default": "/category",
-    "description": "URL prefix for the software catalogue pages (informational — routes are fixed at /category)"
-  },
   "packages_per_page": {
     "type": "number",
     "default": 20,

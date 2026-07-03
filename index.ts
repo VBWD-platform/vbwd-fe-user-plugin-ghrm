@@ -3,6 +3,8 @@ import { userNavRegistry } from '@/plugins/userNavRegistry';
 import { registerCmsVueComponent } from '../cms/src/registry/vueComponentRegistry';
 import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
 import { planDetailTabRegistry } from '@/utils/planDetailTabRegistry';
+import { ghrmApi } from './src/api/ghrmApi';
+import { catalogueBase, setCatalogueBase } from './src/catalogueBase';
 import en from './locales/en.json';
 import de from './locales/de.json';
 import es from './locales/es.json';
@@ -19,7 +21,7 @@ export const ghrmPlugin: IPlugin = {
   dependencies: ['cms', 'checkout'],
   _active: false,
 
-  install(sdk: IPlatformSDK) {
+  async install(sdk: IPlatformSDK) {
     sdk.addTranslations('en', en);
     sdk.addTranslations('de', de);
     sdk.addTranslations('es', es);
@@ -44,30 +46,45 @@ export const ghrmPlugin: IPlugin = {
       checkoutContextRegistry.register(component);
     });
 
+    // Catalogue URL prefix + CMS page slugs come from the backend single source
+    // of truth (GET /api/v1/ghrm/config). Fall back to the documented defaults
+    // if the fetch fails — install() must never throw or the app fails to boot.
+    let cataloguePageSlug = 'category';
+    let detailPageSlug = 'ghrm-software-detail';
+    try {
+      const config = await ghrmApi.getConfig();
+      cataloguePageSlug = config.catalogue_page_slug;
+      detailPageSlug = config.detail_page_slug;
+    } catch {
+      // keep the defaults above
+    }
+    setCatalogueBase(cataloguePageSlug);
+    const base = catalogueBase();
+
     // Public catalogue routes — all rendered via CmsPage with the appropriate page slug
     sdk.addRoute({
-      path: '/category',
+      path: base,
       name: 'ghrm-category-index',
       component: () => import('../cms/src/views/CmsPage.vue'),
-      props: { slug: 'category' },
+      props: { slug: cataloguePageSlug },
       meta: { requiresAuth: false, cmsLayout: true },
     });
     sdk.addRoute({
-      path: '/category/:category_slug',
+      path: `${base}/:category_slug`,
       name: 'ghrm-package-list',
       component: () => import('../cms/src/views/CmsPage.vue'),
-      props: (route: any) => ({ slug: `category/${route.params.category_slug}` }),
+      props: (route: any) => ({ slug: `${cataloguePageSlug}/${route.params.category_slug}` }),
       meta: { requiresAuth: false, cmsLayout: true },
     });
     sdk.addRoute({
-      path: '/category/:category_slug/:package_slug',
+      path: `${base}/:category_slug/:package_slug`,
       name: 'ghrm-package-detail',
       component: () => import('../cms/src/views/CmsPage.vue'),
-      props: { slug: 'ghrm-software-detail' },
+      props: { slug: detailPageSlug },
       meta: { requiresAuth: false, cmsLayout: true },
     });
     sdk.addRoute({
-      path: '/category/search',
+      path: `${base}/search`,
       name: 'ghrm-search',
       component: () => import('./src/views/GhrmSearch.vue'),
       meta: { requiresAuth: false, cmsLayout: true },
@@ -77,8 +94,7 @@ export const ghrmPlugin: IPlugin = {
     Promise.all([
       import('./src/components/GhrmPlanSoftwareTab.vue'),
       import('./src/components/GhrmPlanGithubAccessTab.vue'),
-      import('./src/api/ghrmApi'),
-    ]).then(([softwareTab, githubTab, { ghrmApi }]) => {
+    ]).then(([softwareTab, githubTab]) => {
       const ghrmCondition = (planId: string) =>
         ghrmApi.getPackageByPlan(planId).then(() => true).catch(() => false);
 
@@ -109,7 +125,7 @@ export const ghrmPlugin: IPlugin = {
     this._active = true;
     userNavRegistry.register({
       pluginName: 'ghrm',
-      to: '/category',
+      to: catalogueBase(),
       icon: 'bag',
       labelKey: 'ghrm.title',
       testId: 'nav-ghrm',

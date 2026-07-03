@@ -4,13 +4,6 @@
     v-if="categorySlug"
     class="ghrm-catalogue"
   >
-    <GhrmBreadcrumb
-      v-if="catalogueBreadcrumbConfig"
-      :config="catalogueBreadcrumbConfig"
-      :category-label="categoryLabel"
-      :category-to="`/category/${categorySlug}`"
-    />
-
     <div class="ghrm-list-header">
       <h1 class="ghrm-list-title">
         {{ categoryLabel }}
@@ -58,7 +51,7 @@
       <router-link
         v-for="pkg in items"
         :key="pkg.id"
-        :to="`/category/${categorySlug}/${pkg.slug}`"
+        :to="`${catalogueBase()}/${categorySlug}/${pkg.slug}`"
         :class="viewMode === 'grid' ? 'ghrm-pkg-card' : 'ghrm-pkg-row'"
       >
         <img
@@ -114,7 +107,7 @@
       <router-link
         v-for="cat in categories"
         :key="cat.slug"
-        :to="`/category/${cat.slug}`"
+        :to="`${catalogueBase()}/${cat.slug}`"
         class="ghrm-category-card"
       >
         <h2 class="ghrm-category-card__title">
@@ -129,8 +122,8 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import { ghrmApi, type GhrmCategory, type GhrmBreadcrumbConfig } from '../api/ghrmApi';
-import GhrmBreadcrumb from '../components/GhrmBreadcrumb.vue';
+import { ghrmApi, type GhrmCategory } from '../api/ghrmApi';
+import { catalogueBase } from '../catalogueBase';
 
 const route = useRoute();
 const store = useGhrmStore();
@@ -139,19 +132,6 @@ const categorySlug = computed(() => route.params.category_slug as string | undef
 
 // Category index state
 const categories = ref<GhrmCategory[]>([]);
-
-// Breadcrumb config
-const catalogueBreadcrumbConfig = ref<GhrmBreadcrumbConfig | null>(null);
-
-async function loadWidgetConfig() {
-  try {
-    const data = await ghrmApi.getWidgets();
-    const found = data.widgets.find((w) => w.id === 'catalogue') ?? data.widgets[0] ?? null;
-    if (found) catalogueBreadcrumbConfig.value = found;
-  } catch {
-    // breadcrumb silently absent on error
-  }
-}
 
 const categoryLabel = computed(() => {
   if (!categorySlug.value) return '';
@@ -196,7 +176,6 @@ function goPage(p: number) {
 
 onMounted(() => {
   loadCategories();
-  loadWidgetConfig();
   if (categorySlug.value) loadPackages();
 });
 

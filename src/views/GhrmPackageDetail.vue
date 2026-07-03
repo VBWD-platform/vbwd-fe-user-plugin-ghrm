@@ -216,7 +216,7 @@
           <router-link
             v-for="rel in store.relatedPackages"
             :key="rel.id"
-            :to="`/category/${categorySlug}/${rel.slug}`"
+            :to="`${catalogueBase()}/${categorySlug}/${rel.slug}`"
             class="ghrm-related-card"
           >
             <img
@@ -234,11 +234,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore, TagChips, CustomFieldsDisplay } from 'vbwd-view-component';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import { ghrmApi, type GhrmBreadcrumbConfig } from '../api/ghrmApi';
+import { catalogueBase } from '../catalogueBase';
+import { setBreadcrumbLabel, clearBreadcrumbLabel } from '../../../cms/src/composables/useBreadcrumbLabel';
 import GhrmMarkdownRenderer from '../components/GhrmMarkdownRenderer.vue';
 import GhrmVersionsTable from '../components/GhrmVersionsTable.vue';
 
@@ -261,29 +262,26 @@ const hasTagsOrCustomFields = computed(() => {
   return hasTags || hasFields;
 });
 
-// Breadcrumb
-const detailBreadcrumbConfig = ref<GhrmBreadcrumbConfig | null>(null);
-const categoryLabel = ref('');
+// Breadcrumb: feed the real package DISPLAY NAME into the shared CMS breadcrumb
+// (placed by the page layout) via the generic current-crumb override seam. The
+// URL only carries the slug, so without this the last crumb would read the
+// slug-derived label instead of e.g. "Tarot".
+watch(
+  pkg,
+  (current) => {
+    if (current?.name) setBreadcrumbLabel(route.path, current.name);
+  },
+  { immediate: true },
+);
 
-async function loadWidgetConfig() {
-  try {
-    const data = await ghrmApi.getWidgets();
-    const found = data.widgets.find((w) => w.id === 'detail') ?? data.widgets[0] ?? null;
-    if (found) detailBreadcrumbConfig.value = found;
-  } catch {
-    // breadcrumb silently absent on error
-  }
-}
+watch(
+  () => route.path,
+  (_newPath, previousPath) => {
+    if (previousPath) clearBreadcrumbLabel(previousPath);
+  },
+);
 
-async function loadCategoryLabel() {
-  try {
-    const data = await ghrmApi.getCategories();
-    const cat = data.categories.find((c) => c.slug === categorySlug.value);
-    categoryLabel.value = cat?.label ?? categorySlug.value.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-  } catch {
-    categoryLabel.value = categorySlug.value;
-  }
-}
+onBeforeUnmount(() => clearBreadcrumbLabel(route.path));
 
 const isSubscribed = computed(
   () => !!accessStatus.value?.connected && store.membershipFor(packageSlug.value)?.status === 'ACTIVE',
@@ -315,8 +313,6 @@ async function load() {
   const promises: Promise<unknown>[] = [
     store.fetchRelated(packageSlug.value),
     store.fetchVersions(packageSlug.value),
-    loadWidgetConfig(),
-    loadCategoryLabel(),
   ];
   if (authStore.isAuthenticated) {
     promises.push(store.fetchAccessStatus());

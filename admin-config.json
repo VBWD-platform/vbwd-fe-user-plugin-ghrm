@@ -5,13 +5,6 @@
       "label": "Catalogue Display",
       "fields": [
         {
-          "key": "catalogue_route_prefix",
-          "label": "Catalogue Route Prefix (read-only)",
-          "component": "input",
-          "inputType": "text",
-          "description": "Fixed at /category — routes are registered at app boot and cannot be changed at runtime"
-        },
-        {
           "key": "packages_per_page",
           "label": "Packages Per Page",
           "component": "input",
