@@ -51,6 +51,8 @@
       "cloneHttps": "Clonar (HTTPS)",
       "cloneSsh": "Clonar (SSH)",
       "copy": "Copiar"
-    }
+    },
+    "bundle": "Paquete combinado",
+    "singlePackage": "Paquete"
   }
 }

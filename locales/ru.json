@@ -51,6 +51,8 @@
       "cloneHttps": "Клонировать (HTTPS)",
       "cloneSsh": "Клонировать (SSH)",
       "copy": "Копировать"
-    }
+    },
+    "bundle": "Комплект",
+    "singlePackage": "Пакет"
   }
 }

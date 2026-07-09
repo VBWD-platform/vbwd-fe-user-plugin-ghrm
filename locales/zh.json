@@ -51,6 +51,8 @@
       "cloneHttps": "克隆 (HTTPS)",
       "cloneSsh": "克隆 (SSH)",
       "copy": "复制"
-    }
+    },
+    "bundle": "套装",
+    "singlePackage": "软件包"
   }
 }

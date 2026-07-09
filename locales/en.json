@@ -4,6 +4,8 @@
     "search": "Search packages...",
     "allCategories": "All Categories",
     "noPackages": "No packages found.",
+    "bundle": "Bundle",
+    "singlePackage": "Package",
     "getPackage": "Get Package",
     "viewDetails": "View Details",
     "overview": "Overview",

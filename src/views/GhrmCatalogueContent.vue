@@ -61,6 +61,42 @@
           class="ghrm-pkg-icon"
         >
         <div class="ghrm-pkg-info">
+          <span
+            class="ghrm-pkg-badge"
+            :class="pkg.package_kind === 'bundle' ? 'ghrm-pkg-badge--bundle' : 'ghrm-pkg-badge--single'"
+          >
+            <svg
+              v-if="pkg.package_kind === 'bundle'"
+              class="ghrm-pkg-badge__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+              <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
+              <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
+            </svg>
+            <svg
+              v-else
+              class="ghrm-pkg-badge__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="M3.29 7 12 12l8.71-5" />
+              <path d="M12 22V12" />
+            </svg>
+            {{ pkg.package_kind === 'bundle' ? $t('ghrm.bundle') : $t('ghrm.singlePackage') }}
+          </span>
           <span class="ghrm-pkg-name">{{ pkg.name }}</span>
           <span
             v-if="pkg.author_name"
@@ -210,6 +246,10 @@ watch(categorySlug, (slug) => {
 .ghrm-pkg-row:hover { background: #f0f7ff; }
 .ghrm-pkg-icon { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; }
 .ghrm-pkg-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.ghrm-pkg-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; margin-bottom: 4px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.5; letter-spacing: .01em; }
+.ghrm-pkg-badge__icon { width: 12px; height: 12px; flex-shrink: 0; }
+.ghrm-pkg-badge--bundle { background: #ede9fe; color: #6d28d9; }
+.ghrm-pkg-badge--single { background: #eff6ff; color: #2563eb; }
 .ghrm-pkg-name { font-weight: 600; color: #2c3e50; font-size: 15px; }
 .ghrm-pkg-author { font-size: 12px; color: #6b7280; }
 .ghrm-pkg-version { font-size: 12px; color: #3498db; font-family: monospace; }

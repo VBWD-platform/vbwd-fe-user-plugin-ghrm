@@ -51,6 +51,8 @@
       "cloneHttps": "โคลน (HTTPS)",
       "cloneSsh": "โคลน (SSH)",
       "copy": "คัดลอก"
-    }
+    },
+    "bundle": "ชุดรวม",
+    "singlePackage": "แพ็กเกจ"
   }
 }

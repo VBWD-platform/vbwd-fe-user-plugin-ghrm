@@ -66,6 +66,7 @@ export interface GhrmPackageListItem {
   icon_url: string | null;
   download_counter: number;
   latest_version: string | null;
+  package_kind: 'single' | 'bundle';
 }
 
 export interface GhrmPaginated<T> {

@@ -51,6 +51,8 @@
       "cloneHttps": "クローン (HTTPS)",
       "cloneSsh": "クローン (SSH)",
       "copy": "コピー"
-    }
+    },
+    "bundle": "バンドル",
+    "singlePackage": "パッケージ"
   }
 }
