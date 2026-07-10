@@ -1,29 +1,107 @@
 <template>
-  <!-- Package list view when a category is selected -->
-  <div
-    v-if="categorySlug"
-    class="ghrm-catalogue"
-  >
+  <div class="ghrm-catalogue">
     <div class="ghrm-list-header">
       <h1 class="ghrm-list-title">
-        {{ categoryLabel }}
+        {{ $t('ghrm.title') }}
       </h1>
       <div class="ghrm-list-controls">
         <input
           v-model="searchQ"
           class="ghrm-search-input"
           type="text"
+          data-testid="ghrm-search-input"
           :placeholder="$t('ghrm.search')"
-          @input="onSearch"
+          @input="onSearchInput"
         >
         <button
           class="ghrm-view-toggle"
+          type="button"
           :title="viewMode === 'grid' ? 'Switch to list' : 'Switch to grid'"
           @click="viewMode = viewMode === 'grid' ? 'list' : 'grid'"
         >
           {{ viewMode === 'grid' ? '☰' : '⊞' }}
         </button>
       </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="ghrm-filters">
+      <label class="ghrm-filter-field">
+        <span class="ghrm-filter-label">{{ $t('ghrm.filterCategory') }}</span>
+        <select
+          class="ghrm-filter-select"
+          data-testid="ghrm-filter-category"
+          :value="activeCategory"
+          @change="onCategoryChange"
+        >
+          <option value="">
+            {{ $t('ghrm.allCategories') }}
+          </option>
+          <option
+            v-for="cat in store.categoryOptions"
+            :key="cat.slug"
+            :value="cat.slug"
+          >
+            {{ cat.label }}
+          </option>
+        </select>
+      </label>
+
+      <div class="ghrm-filter-field">
+        <span class="ghrm-filter-label">{{ $t('ghrm.filterKind') }}</span>
+        <div
+          class="ghrm-kind-toggle"
+          role="group"
+        >
+          <button
+            v-for="option in kindOptions"
+            :key="option.value || 'all'"
+            type="button"
+            class="ghrm-kind-btn"
+            :class="{ 'ghrm-kind-btn--active': activeKind === option.value }"
+            :data-testid="`ghrm-kind-${option.value || 'all'}`"
+            @click="setKind(option.value)"
+          >
+            {{ $t(option.labelKey) }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="store.tagOptions.length"
+        class="ghrm-filter-field ghrm-filter-field--tags"
+      >
+        <span class="ghrm-filter-label">{{ $t('ghrm.filterTags') }}</span>
+        <div class="ghrm-tag-toggle">
+          <button
+            v-for="tag in store.tagOptions"
+            :key="tag.slug"
+            type="button"
+            class="ghrm-tag-chip"
+            :class="{ 'ghrm-tag-chip--active': activeTags.includes(tag.slug) }"
+            :data-testid="`ghrm-tag-${tag.slug}`"
+            @click="toggleTag(tag.slug)"
+          >
+            {{ tag.name }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active filters summary -->
+    <div
+      v-if="hasActiveFilters"
+      class="ghrm-active-filters"
+    >
+      <span class="ghrm-active-filters__label">{{ $t('ghrm.activeFilters') }}</span>
+      <button
+        type="button"
+        class="ghrm-clear-filters"
+        data-testid="ghrm-clear-filters"
+        @click="clearFilters"
+      >
+        {{ $t('ghrm.clearFilters') }}
+      </button>
     </div>
 
     <div
@@ -42,7 +120,16 @@
       v-else-if="!items.length"
       class="ghrm-empty"
     >
-      {{ $t('ghrm.noPackages') }}
+      <p>{{ $t('ghrm.noPackages') }}</p>
+      <button
+        v-if="hasActiveFilters"
+        type="button"
+        class="ghrm-clear-filters"
+        data-testid="ghrm-empty-clear-filters"
+        @click="clearFilters"
+      >
+        {{ $t('ghrm.clearFilters') }}
+      </button>
     </div>
     <div
       v-else
@@ -51,7 +138,7 @@
       <router-link
         v-for="pkg in items"
         :key="pkg.id"
-        :to="`${catalogueBase()}/${categorySlug}/${pkg.slug}`"
+        :to="`${catalogueBase()}/${pkg.slug}`"
         :class="viewMode === 'grid' ? 'ghrm-pkg-card' : 'ghrm-pkg-row'"
       >
         <img
@@ -102,10 +189,21 @@
             v-if="pkg.author_name"
             class="ghrm-pkg-author"
           >{{ $t('ghrm.by') }} {{ pkg.author_name }}</span>
-          <span
-            v-if="pkg.latest_version"
-            class="ghrm-pkg-version"
-          >{{ pkg.latest_version }}</span>
+          <div
+            v-if="pkg.tags && pkg.tags.length"
+            class="ghrm-pkg-tags"
+          >
+            <button
+              v-for="tag in pkg.tags"
+              :key="tag"
+              type="button"
+              class="ghrm-pkg-tag"
+              :class="{ 'ghrm-pkg-tag--active': activeTags.includes(tag) }"
+              @click.stop.prevent="toggleTag(tag)"
+            >
+              {{ tagLabel(tag) }}
+            </button>
+          </div>
         </div>
         <span class="ghrm-pkg-downloads">↓ {{ pkg.download_counter }}</span>
       </router-link>
@@ -116,6 +214,7 @@
       class="ghrm-pagination"
     >
       <button
+        type="button"
         :disabled="currentPage <= 1"
         @click="goPage(currentPage - 1)"
       >
@@ -123,6 +222,7 @@
       </button>
       <span>{{ currentPage }} / {{ totalPages }}</span>
       <button
+        type="button"
         :disabled="currentPage >= totalPages"
         @click="goPage(currentPage + 1)"
       >
@@ -130,133 +230,197 @@
       </button>
     </div>
   </div>
-
-  <!-- Category index when at /category root -->
-  <div
-    v-else
-    class="ghrm-category-index"
-  >
-    <h1 class="ghrm-category-index__title">
-      {{ $t('ghrm.title') }}
-    </h1>
-    <div class="ghrm-category-grid">
-      <router-link
-        v-for="cat in categories"
-        :key="cat.slug"
-        :to="`${catalogueBase()}/${cat.slug}`"
-        class="ghrm-category-card"
-      >
-        <h2 class="ghrm-category-card__title">
-          {{ cat.label }}
-        </h2>
-      </router-link>
-    </div>
-  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import { ghrmApi, type GhrmCategory } from '../api/ghrmApi';
+import { type GhrmListParams } from '../api/ghrmApi';
 import { catalogueBase } from '../catalogueBase';
 
+// The CMS vue-component widget renderer spreads the seeded `content_json.props`
+// onto this component, so the operator-configured page size arrives as a prop.
+const props = defineProps<{ items_per_page?: number }>();
+
 const route = useRoute();
+const router = useRouter();
 const store = useGhrmStore();
 
-const categorySlug = computed(() => route.params.category_slug as string | undefined);
+const DEFAULT_PER_PAGE = 12;
+const SEARCH_DEBOUNCE_MS = 300;
 
-// Category index state
-const categories = ref<GhrmCategory[]>([]);
+const kindOptions: { value: '' | 'single' | 'bundle'; labelKey: string }[] = [
+  { value: '', labelKey: 'ghrm.kindAll' },
+  { value: 'single', labelKey: 'ghrm.kindSingle' },
+  { value: 'bundle', labelKey: 'ghrm.kindBundle' },
+];
 
-const categoryLabel = computed(() => {
-  if (!categorySlug.value) return '';
-  const found = categories.value.find(c => c.slug === categorySlug.value);
-  return found?.label ?? categorySlug.value.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-});
-
-// Package list state
 const viewMode = ref<'grid' | 'list'>('grid');
-const searchQ = ref('');
-const currentPage = ref(1);
+// Local mirror of the URL `q` — the input debounces before pushing to the URL.
+const searchQ = ref((route.query.q as string) || '');
+
+const perPage = computed(() => String(props.items_per_page ?? DEFAULT_PER_PAGE));
+
+// All filter state is derived from the URL query — the single source of truth
+// so results are shareable, bookmarkable and back/forward correct.
+const activeCategory = computed(() => (route.query.category as string) || '');
+const activeKind = computed(() => (route.query.kind as string) || '');
+const activeTags = computed(() => parseTags(route.query.tags as string | undefined));
+const currentPage = computed(() => Number(route.query.page) || 1);
+
 const items = computed(() => store.packages?.items || []);
 const totalPages = computed(() => store.packages?.pages || 1);
+const hasActiveFilters = computed(
+  () => !!(activeCategory.value || activeKind.value || activeTags.value.length || (route.query.q as string)),
+);
+
+function parseTags(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw.split(',').map((slug) => slug.trim()).filter(Boolean);
+}
+
+function tagLabel(slug: string): string {
+  return store.tagOptions.find((tag) => tag.slug === slug)?.name ?? slug;
+}
+
+// Merge a patch onto the current query. Empty/undefined values remove the key.
+// Any filter change resets pagination to page 1 unless `resetPage` is false.
+function pushFilters(patch: Record<string, string | undefined>, resetPage = true) {
+  const next: Record<string, string> = {};
+  for (const [key, value] of Object.entries(route.query)) {
+    if (typeof value === 'string') next[key] = value;
+  }
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined || value === '') delete next[key];
+    else next[key] = value;
+  }
+  if (resetPage) delete next.page;
+  router.push({ path: route.path, query: next });
+}
+
+function onCategoryChange(event: Event) {
+  setCategory((event.target as HTMLSelectElement).value);
+}
+
+function setCategory(slug: string) {
+  pushFilters({ category: slug || undefined });
+}
+
+function setKind(kind: '' | 'single' | 'bundle') {
+  pushFilters({ kind: kind || undefined });
+}
+
+function toggleTag(slug: string) {
+  const next = activeTags.value.includes(slug)
+    ? activeTags.value.filter((tag) => tag !== slug)
+    : [...activeTags.value, slug];
+  pushFilters({ tags: next.length ? next.join(',') : undefined });
+}
+
+let searchTimer: ReturnType<typeof setTimeout>;
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => pushFilters({ q: searchQ.value || undefined }), SEARCH_DEBOUNCE_MS);
+}
+
+function clearFilters() {
+  searchQ.value = '';
+  router.push({ path: route.path, query: {} });
+}
+
+function goPage(page: number) {
+  pushFilters({ page: page > 1 ? String(page) : undefined }, false);
+}
 
 function loadPackages() {
-  const params: Record<string, string> = {
-    category_slug: categorySlug.value!,
+  const params: GhrmListParams = {
     page: String(currentPage.value),
+    per_page: perPage.value,
   };
-  if (searchQ.value) params.q = searchQ.value;
+  if (activeCategory.value) params.category_slug = activeCategory.value;
+  if (activeTags.value.length) params.tags = activeTags.value;
+  if (activeKind.value) params.kind = activeKind.value as 'single' | 'bundle';
+  const searchValue = (route.query.q as string) || '';
+  if (searchValue) params.q = searchValue;
   store.fetchPackages(params);
 }
 
-async function loadCategories() {
-  try {
-    const data = await ghrmApi.getCategories();
-    categories.value = data.categories;
-  } catch {
-    // keep empty
-  }
-}
-
-function onSearch() {
-  currentPage.value = 1;
-  loadPackages();
-}
-
-function goPage(p: number) {
-  currentPage.value = p;
-  loadPackages();
-}
-
 onMounted(() => {
-  loadCategories();
-  if (categorySlug.value) loadPackages();
+  store.fetchCategoryOptions();
+  store.fetchTagOptions();
+  loadPackages();
 });
 
-watch(categorySlug, (slug) => {
-  currentPage.value = 1;
-  searchQ.value = '';
-  if (slug) loadPackages();
-});
+// React to any URL change (filters, pagination, back/forward) — refetch and
+// keep the search input mirror in sync with the URL.
+watch(
+  () => route.query,
+  () => {
+    searchQ.value = (route.query.q as string) || '';
+    loadPackages();
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped>
-/* Category index */
-.ghrm-category-index { max-width: 960px; margin: 40px auto; padding: 0 20px; }
-.ghrm-category-index__title { font-size: 2rem; margin-bottom: 32px; color: #2c3e50; }
-.ghrm-category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
-.ghrm-category-card { display: block; padding: 28px; background: #fff; border: 2px solid #e9ecef; border-radius: 10px; text-decoration: none; transition: all 0.2s; }
-.ghrm-category-card:hover { border-color: #3498db; box-shadow: 0 4px 16px rgba(52,152,219,.12); transform: translateY(-2px); }
-.ghrm-category-card__title { font-size: 1.2rem; color: #2c3e50; margin: 0; }
-
-/* Package list */
 .ghrm-catalogue { max-width: 1100px; margin: 0 auto; padding: 20px; }
-.ghrm-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-.ghrm-list-title { font-size: 1.6rem; color: #2c3e50; margin: 0; }
+.ghrm-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.ghrm-list-title { font-size: 1.6rem; color: var(--color-heading, #2c3e50); margin: 0; }
 .ghrm-list-controls { display: flex; gap: 8px; align-items: center; }
-.ghrm-search-input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; width: 200px; }
-.ghrm-view-toggle { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; cursor: pointer; font-size: 18px; }
+.ghrm-search-input { padding: 8px 12px; border: 1px solid var(--color-border, #d1d5db); border-radius: 6px; font-size: 14px; width: 200px; max-width: 100%; background: var(--color-surface, #fff); color: var(--color-text, #333); }
+.ghrm-view-toggle { padding: 8px 12px; border: 1px solid var(--color-border, #d1d5db); border-radius: 6px; background: var(--color-surface, #fff); color: var(--color-text, #333); cursor: pointer; font-size: 18px; }
+
+/* Filter bar */
+.ghrm-filters { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px 24px; padding: 16px; margin-bottom: 16px; background: var(--color-surface-muted, #f8f9fa); border: 1px solid var(--color-border, #e9ecef); border-radius: 10px; }
+.ghrm-filter-field { display: flex; flex-direction: column; gap: 6px; }
+.ghrm-filter-field--tags { flex: 1 1 100%; }
+.ghrm-filter-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted, #6b7280); }
+.ghrm-filter-select { padding: 8px 12px; border: 1px solid var(--color-border, #d1d5db); border-radius: 6px; font-size: 14px; background: var(--color-surface, #fff); color: var(--color-text, #333); min-width: 180px; }
+.ghrm-kind-toggle { display: inline-flex; border: 1px solid var(--color-border, #d1d5db); border-radius: 6px; overflow: hidden; }
+.ghrm-kind-btn { padding: 8px 14px; background: var(--color-surface, #fff); color: var(--color-text, #374151); border: none; border-right: 1px solid var(--color-border, #d1d5db); cursor: pointer; font-size: 13px; }
+.ghrm-kind-btn:last-child { border-right: none; }
+.ghrm-kind-btn--active { background: var(--color-primary, #3498db); color: var(--color-on-primary, #fff); }
+.ghrm-tag-toggle { display: flex; flex-wrap: wrap; gap: 8px; }
+.ghrm-tag-chip { padding: 5px 12px; border: 1px solid var(--color-border, #d1d5db); border-radius: 999px; background: var(--color-surface, #fff); color: var(--color-text, #374151); cursor: pointer; font-size: 12px; }
+.ghrm-tag-chip--active { background: var(--color-primary, #3498db); color: var(--color-on-primary, #fff); border-color: var(--color-primary, #3498db); }
+
+/* Active filters summary */
+.ghrm-active-filters { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.ghrm-active-filters__label { font-size: 13px; color: var(--color-text-muted, #6b7280); }
+.ghrm-clear-filters { padding: 6px 14px; border: 1px solid var(--color-border, #d1d5db); border-radius: 6px; background: var(--color-surface, #fff); color: var(--color-primary, #3498db); cursor: pointer; font-size: 13px; }
+.ghrm-clear-filters:hover { border-color: var(--color-primary, #3498db); }
+
 .ghrm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .ghrm-list { display: flex; flex-direction: column; gap: 8px; }
-.ghrm-pkg-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; background: #fff; border: 1px solid #e9ecef; border-radius: 8px; text-decoration: none; transition: all .2s; }
-.ghrm-pkg-card:hover { border-color: #3498db; box-shadow: 0 2px 12px rgba(52,152,219,.1); }
-.ghrm-pkg-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid #e9ecef; border-radius: 6px; text-decoration: none; }
-.ghrm-pkg-row:hover { background: #f0f7ff; }
+.ghrm-pkg-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e9ecef); border-radius: 8px; text-decoration: none; transition: all .2s; }
+.ghrm-pkg-card:hover { border-color: var(--color-primary, #3498db); box-shadow: 0 2px 12px rgba(52,152,219,.1); }
+.ghrm-pkg-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--color-surface, #fff); border: 1px solid var(--color-border, #e9ecef); border-radius: 6px; text-decoration: none; }
+.ghrm-pkg-row:hover { background: var(--color-surface-hover, #f0f7ff); }
 .ghrm-pkg-icon { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; }
 .ghrm-pkg-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .ghrm-pkg-badge { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; margin-bottom: 4px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 1.5; letter-spacing: .01em; }
 .ghrm-pkg-badge__icon { width: 12px; height: 12px; flex-shrink: 0; }
 .ghrm-pkg-badge--bundle { background: #ede9fe; color: #6d28d9; }
 .ghrm-pkg-badge--single { background: #eff6ff; color: #2563eb; }
-.ghrm-pkg-name { font-weight: 600; color: #2c3e50; font-size: 15px; }
-.ghrm-pkg-author { font-size: 12px; color: #6b7280; }
-.ghrm-pkg-version { font-size: 12px; color: #3498db; font-family: monospace; }
-.ghrm-pkg-downloads { font-size: 12px; color: #9ca3af; }
+.ghrm-pkg-name { font-weight: 600; color: var(--color-heading, #2c3e50); font-size: 15px; }
+.ghrm-pkg-author { font-size: 12px; color: var(--color-text-muted, #6b7280); }
+.ghrm-pkg-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ghrm-pkg-tag { padding: 2px 8px; border: 1px solid var(--color-border, #e9ecef); border-radius: 999px; background: var(--color-surface-muted, #f8f9fa); color: var(--color-text-muted, #6b7280); cursor: pointer; font-size: 11px; }
+.ghrm-pkg-tag--active { background: var(--color-primary, #3498db); color: var(--color-on-primary, #fff); border-color: var(--color-primary, #3498db); }
+.ghrm-pkg-downloads { font-size: 12px; color: var(--color-text-muted, #9ca3af); }
 .ghrm-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; }
-.ghrm-pagination button { padding: 6px 14px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff; cursor: pointer; }
+.ghrm-pagination button { padding: 6px 14px; border: 1px solid var(--color-border, #d1d5db); border-radius: 4px; background: var(--color-surface, #fff); color: var(--color-text, #333); cursor: pointer; }
 .ghrm-pagination button:disabled { opacity: .4; cursor: default; }
-.ghrm-loading, .ghrm-error, .ghrm-empty { text-align: center; padding: 48px 20px; color: #6b7280; }
+.ghrm-loading, .ghrm-error, .ghrm-empty { text-align: center; padding: 48px 20px; color: var(--color-text-muted, #6b7280); }
+.ghrm-empty { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .ghrm-error { color: #dc2626; }
+
+@media (max-width: 640px) {
+  .ghrm-filters { flex-direction: column; gap: 14px; }
+  .ghrm-filter-field, .ghrm-filter-select, .ghrm-kind-toggle { width: 100%; }
+  .ghrm-kind-btn { flex: 1; }
+  .ghrm-search-input { width: 100%; }
+}
 </style>

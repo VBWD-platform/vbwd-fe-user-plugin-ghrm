@@ -1,4 +1,4 @@
-import type { IPlugin, IPlatformSDK } from 'vbwd-view-component';
+import type { IPlugin, IPlatformSDK, IRouteConfig } from 'vbwd-view-component';
 import { userNavRegistry } from '@/plugins/userNavRegistry';
 import { registerCmsVueComponent } from '../cms/src/registry/vueComponentRegistry';
 import { checkoutContextRegistry } from '@/registries/checkoutContextRegistry';
@@ -49,7 +49,7 @@ export const ghrmPlugin: IPlugin = {
     // Catalogue URL prefix + CMS page slugs come from the backend single source
     // of truth (GET /api/v1/ghrm/config). Fall back to the documented defaults
     // if the fetch fails — install() must never throw or the app fails to boot.
-    let cataloguePageSlug = 'category';
+    let cataloguePageSlug = 'software';
     let detailPageSlug = 'ghrm-software-detail';
     try {
       const config = await ghrmApi.getConfig();
@@ -61,34 +61,61 @@ export const ghrmPlugin: IPlugin = {
     setCatalogueBase(cataloguePageSlug);
     const base = catalogueBase();
 
-    // Public catalogue routes — all rendered via CmsPage with the appropriate page slug
+    // The catalogue is a SINGLE page whose widget carries the filters — so the
+    // route table is flat: one catalogue page, one search page, one detail page.
     sdk.addRoute({
       path: base,
-      name: 'ghrm-category-index',
+      name: 'ghrm-catalogue',
       component: () => import('../cms/src/views/CmsPage.vue'),
       props: { slug: cataloguePageSlug },
       meta: { requiresAuth: false, cmsLayout: true },
     });
-    sdk.addRoute({
-      path: `${base}/:category_slug`,
-      name: 'ghrm-package-list',
-      component: () => import('../cms/src/views/CmsPage.vue'),
-      props: (route: any) => ({ slug: `${cataloguePageSlug}/${route.params.category_slug}` }),
-      meta: { requiresAuth: false, cmsLayout: true },
-    });
-    sdk.addRoute({
-      path: `${base}/:category_slug/:package_slug`,
-      name: 'ghrm-package-detail',
-      component: () => import('../cms/src/views/CmsPage.vue'),
-      props: { slug: detailPageSlug },
-      meta: { requiresAuth: false, cmsLayout: true },
-    });
+    // Search MUST be registered before the :package_slug param route so the
+    // static /search segment always wins over the dynamic detail match.
     sdk.addRoute({
       path: `${base}/search`,
       name: 'ghrm-search',
       component: () => import('./src/views/GhrmSearch.vue'),
       meta: { requiresAuth: false, cmsLayout: true },
     });
+    // Package detail — no category segment; resolves by package slug alone.
+    sdk.addRoute({
+      path: `${base}/:package_slug`,
+      name: 'ghrm-package-detail',
+      component: () => import('../cms/src/views/CmsPage.vue'),
+      props: { slug: detailPageSlug },
+      meta: { requiresAuth: false, cmsLayout: true },
+    });
+
+    // Preserve the old indexed /category* URLs via redirects. Skip them when the
+    // resolved base IS /category (operator config) — otherwise the /category
+    // redirect would self-loop and the /category/:x redirect would collide with
+    // the /category/:package_slug detail route.
+    if (base !== '/category') {
+      const legacyRedirects: IRouteConfig[] = [
+        {
+          path: '/category',
+          name: 'ghrm-legacy-category-index',
+          redirect: base,
+        } as unknown as IRouteConfig,
+        {
+          path: '/category/:category_slug',
+          name: 'ghrm-legacy-category-list',
+          redirect: (to: { params: Record<string, string> }) => ({
+            path: base,
+            query: { category: to.params.category_slug },
+          }),
+        } as unknown as IRouteConfig,
+        {
+          path: '/category/:category_slug/:package_slug',
+          name: 'ghrm-legacy-package-detail',
+          redirect: (to: { params: Record<string, string> }) => ({
+            path: `${base}/${to.params.package_slug}`,
+          }),
+        } as unknown as IRouteConfig,
+      ];
+      legacyRedirects.forEach((route) => sdk.addRoute(route));
+    }
     // Register plan detail tabs — only shown when the plan has a linked GHRM package.
     // The condition calls getPackageByPlan(planId): resolves → show tab, rejects 404 → hide.
     Promise.all([

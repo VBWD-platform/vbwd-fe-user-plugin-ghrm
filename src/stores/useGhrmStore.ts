@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { ghrmApi, type GhrmPackage, type GhrmPackageListItem, type GhrmPaginated, type GhrmPackageInstall, type GhrmAccessStatus, type GhrmMembership } from '../api/ghrmApi';
+import { ghrmApi, type GhrmPackage, type GhrmPackageListItem, type GhrmPaginated, type GhrmPackageInstall, type GhrmAccessStatus, type GhrmMembership, type GhrmListParams, type GhrmCategory, type GhrmTag } from '../api/ghrmApi';
 
 export const useGhrmStore = defineStore('ghrm', () => {
   const packages = ref<GhrmPaginated<GhrmPackageListItem> | null>(null);
@@ -10,10 +10,12 @@ export const useGhrmStore = defineStore('ghrm', () => {
   const installPayloads = ref<Record<string, GhrmPackageInstall>>({});
   const accessStatus = ref<GhrmAccessStatus | null>(null);
   const searchResults = ref<GhrmPaginated<GhrmPackageListItem> | null>(null);
+  const categoryOptions = ref<GhrmCategory[]>([]);
+  const tagOptions = ref<GhrmTag[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  async function fetchPackages(params: Record<string, string> = {}) {
+  async function fetchPackages(params: GhrmListParams = {}) {
     loading.value = true;
     error.value = null;
     try {
@@ -22,6 +24,22 @@ export const useGhrmStore = defineStore('ghrm', () => {
       error.value = (e as Error).message;
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function fetchCategoryOptions() {
+    try {
+      categoryOptions.value = (await ghrmApi.getCategories()).categories;
+    } catch {
+      categoryOptions.value = [];
+    }
+  }
+
+  async function fetchTagOptions() {
+    try {
+      tagOptions.value = await ghrmApi.listTags();
+    } catch {
+      tagOptions.value = [];
     }
   }
 
@@ -94,8 +112,10 @@ export const useGhrmStore = defineStore('ghrm', () => {
 
   return {
     packages, currentPackage, relatedPackages, versions,
-    installPayloads, accessStatus, searchResults, loading, error,
-    fetchPackages, fetchPackage, fetchRelated, fetchVersions,
+    installPayloads, accessStatus, searchResults,
+    categoryOptions, tagOptions, loading, error,
+    fetchPackages, fetchCategoryOptions, fetchTagOptions,
+    fetchPackage, fetchRelated, fetchVersions,
     fetchInstall, fetchAccessStatus, membershipFor, search, disconnect,
   };
 });

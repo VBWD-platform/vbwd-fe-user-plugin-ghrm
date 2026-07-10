@@ -20,10 +20,10 @@ vi.mock('../src/api/ghrmApi', () => ({
   },
 }));
 
-const ROUTE_PATH = '/category/tools/widget';
+const ROUTE_PATH = '/software/widget';
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: ROUTE_PATH, params: { category_slug: 'tools', package_slug: 'widget' } }),
+  useRoute: () => ({ path: ROUTE_PATH, params: { package_slug: 'widget' } }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 

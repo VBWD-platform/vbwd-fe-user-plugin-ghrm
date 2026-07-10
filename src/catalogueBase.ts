@@ -4,9 +4,9 @@
  *
  * The value is derived from the backend single source of truth
  * (GET /api/v1/ghrm/config → `catalogue_page_slug`) at install time. Until the
- * config fetch resolves it defaults to `/category`.
+ * config fetch resolves it defaults to `/software`.
  */
-const DEFAULT_CATALOGUE_BASE = '/category';
+const DEFAULT_CATALOGUE_BASE = '/software';
 
 let resolvedCatalogueBase = DEFAULT_CATALOGUE_BASE;
 

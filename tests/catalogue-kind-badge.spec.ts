@@ -13,11 +13,14 @@ vi.mock('vbwd-view-component', async () => {
 });
 
 vi.mock('../src/api/ghrmApi', () => ({
-  ghrmApi: { getCategories: vi.fn(async () => ({ categories: [] })) },
+  ghrmApi: {
+    getCategories: vi.fn(async () => ({ categories: [] })),
+    listTags: vi.fn(async () => []),
+  },
 }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ path: '/software/plugin-bundles', params: { category_slug: 'plugin-bundles' } }),
+  useRoute: () => ({ path: '/software', query: {} }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 

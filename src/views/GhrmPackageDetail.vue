@@ -216,7 +216,7 @@
           <router-link
             v-for="rel in store.relatedPackages"
             :key="rel.id"
-            :to="`${catalogueBase()}/${categorySlug}/${rel.slug}`"
+            :to="`${catalogueBase()}/${rel.slug}`"
             class="ghrm-related-card"
           >
             <img
@@ -248,7 +248,6 @@ const router = useRouter();
 const store = useGhrmStore();
 const authStore = useAuthStore();
 
-const categorySlug = computed(() => route.params.category_slug as string);
 const packageSlug = computed(() => route.params.package_slug as string);
 const pkg = computed(() => store.currentPackage);
 const accessStatus = computed(() => store.accessStatus);

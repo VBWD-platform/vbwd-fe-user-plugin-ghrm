@@ -24,7 +24,7 @@ vi.mock('../src/api/ghrmApi', () => ({
 }));
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { category_slug: 'tools', package_slug: 'widget' } }),
+  useRoute: () => ({ path: '/software/widget', params: { package_slug: 'widget' } }),
   useRouter: () => ({ push: vi.fn() }),
 }));
 

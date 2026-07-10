@@ -34,7 +34,7 @@
       <router-link
         v-for="pkg in items"
         :key="pkg.id"
-        :to="`${catalogueBase()}/backend/${pkg.slug}`"
+        :to="`${catalogueBase()}/${pkg.slug}`"
         class="ghrm-search-result"
         :data-testid="`ghrm-result-${pkg.slug}`"
       >

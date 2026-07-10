@@ -65,8 +65,27 @@ export interface GhrmPackageListItem {
   author_name: string | null;
   icon_url: string | null;
   download_counter: number;
+  // The list endpoint does not return latest_version — kept for shape parity
+  // with callers that fetch a full package; never rely on it in list views.
   latest_version: string | null;
   package_kind: 'single' | 'bundle';
+  tags: string[];
+}
+
+/** A catalogue tag filter option (GET /api/v1/ghrm/tags). */
+export interface GhrmTag {
+  slug: string;
+  name: string;
+}
+
+/** Query parameters accepted by the catalogue package listing. */
+export interface GhrmListParams {
+  page?: string;
+  per_page?: string;
+  category_slug?: string;
+  q?: string;
+  kind?: 'single' | 'bundle';
+  tags?: string[];
 }
 
 export interface GhrmPaginated<T> {
@@ -131,8 +150,18 @@ export const ghrmApi = {
   getCategories(): Promise<{ categories: GhrmCategory[] }> {
     return get(`${API}/categories`);
   },
-  listPackages(params: Record<string, string> = {}): Promise<GhrmPaginated<GhrmPackageListItem>> {
-    return get(`${API}/packages`, params);
+  listTags(): Promise<GhrmTag[]> {
+    return get<{ tags: GhrmTag[] }>(`${API}/tags`).then((data) => data.tags);
+  },
+  listPackages(params: GhrmListParams = {}): Promise<GhrmPaginated<GhrmPackageListItem>> {
+    const query: Record<string, string> = {};
+    if (params.page) query.page = params.page;
+    if (params.per_page) query.per_page = params.per_page;
+    if (params.category_slug) query.category_slug = params.category_slug;
+    if (params.q) query.q = params.q;
+    if (params.kind) query.kind = params.kind;
+    if (params.tags && params.tags.length) query.tags = params.tags.join(',');
+    return get(`${API}/packages`, query);
   },
   getPackage(slug: string): Promise<GhrmPackage> {
     return get(`${API}/packages/${slug}`);
