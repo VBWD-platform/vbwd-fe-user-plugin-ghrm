@@ -10,10 +10,16 @@
  *   - empty state renders when there are no items
  *   - the widget's items_per_page reaches the `per_page` request param
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { reactive } from 'vue';
-import { mount, flushPromises, RouterLinkStub } from '@vue/test-utils';
+import { mount, flushPromises, RouterLinkStub, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+
+// Every mounted catalogue is tracked and unmounted after each test. These specs
+// share a module-level `mockRoute`, so a component left mounted would keep
+// reacting to the next test's route changes (e.g. its category watcher firing a
+// stray fetch) and pollute the next test's spies.
+const mountedWrappers: VueWrapper[] = [];
 
 vi.mock('vbwd-view-component', async () => {
   const actual = await vi.importActual<Record<string, unknown>>('vbwd-view-component');
@@ -63,6 +69,7 @@ async function mountCatalogue(opts: { query?: Record<string, string>; items?: un
     global: { mocks: { $t: tFallback }, stubs: { RouterLink: RouterLinkStub } },
   });
   await flushPromises();
+  mountedWrappers.push(wrapper);
   return { wrapper, store, fetchSpy };
 }
 
@@ -71,6 +78,10 @@ describe('GhrmCatalogueContent — URL-driven filters', () => {
     setActivePinia(createPinia());
     mockRouterPush.mockClear();
     mockRoute.query = {};
+  });
+
+  afterEach(() => {
+    while (mountedWrappers.length) mountedWrappers.pop()?.unmount();
   });
 
   it('hydrates the initial fetch from route.query', async () => {

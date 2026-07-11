@@ -35,9 +35,9 @@ export const useGhrmStore = defineStore('ghrm', () => {
     }
   }
 
-  async function fetchTagOptions() {
+  async function fetchTagOptions(categorySlug?: string) {
     try {
-      tagOptions.value = await ghrmApi.listTags();
+      tagOptions.value = await ghrmApi.listTags(categorySlug);
     } catch {
       tagOptions.value = [];
     }

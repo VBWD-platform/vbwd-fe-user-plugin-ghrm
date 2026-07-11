@@ -78,4 +78,12 @@ describe('ghrmApi.listTags', () => {
     expect(calledUrl(fetchMock)).toBe('/api/v1/ghrm/tags');
     expect(tags).toEqual([{ slug: 'cli', name: 'CLI' }]);
   });
+
+  it('scopes to a category via the category_slug param', async () => {
+    const fetchMock = stubFetch({ tags: [{ slug: 'cli', name: 'CLI' }] });
+
+    await ghrmApi.listTags('tools');
+
+    expect(calledUrl(fetchMock)).toBe('/api/v1/ghrm/tags?category_slug=tools');
+  });
 });

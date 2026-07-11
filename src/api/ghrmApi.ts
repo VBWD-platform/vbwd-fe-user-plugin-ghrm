@@ -150,8 +150,9 @@ export const ghrmApi = {
   getCategories(): Promise<{ categories: GhrmCategory[] }> {
     return get(`${API}/categories`);
   },
-  listTags(): Promise<GhrmTag[]> {
-    return get<{ tags: GhrmTag[] }>(`${API}/tags`).then((data) => data.tags);
+  listTags(categorySlug?: string): Promise<GhrmTag[]> {
+    const query = categorySlug ? { category_slug: categorySlug } : undefined;
+    return get<{ tags: GhrmTag[] }>(`${API}/tags`, query).then((data) => data.tags);
   },
   listPackages(params: GhrmListParams = {}): Promise<GhrmPaginated<GhrmPackageListItem>> {
     const query: Record<string, string> = {};

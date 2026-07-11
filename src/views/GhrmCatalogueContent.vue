@@ -348,12 +348,15 @@ function loadPackages() {
 
 onMounted(() => {
   store.fetchCategoryOptions();
-  store.fetchTagOptions();
+  // Tag options are scoped to the category in the URL on first load; when no
+  // category is selected they fall back to the unscoped set.
+  store.fetchTagOptions(activeCategory.value || undefined);
   loadPackages();
 });
 
-// React to any URL change (filters, pagination, back/forward) — refetch and
-// keep the search input mirror in sync with the URL.
+// React to any URL change (filters, pagination, back/forward) — the URL is the
+// single source of truth. Refetch packages and keep the search input mirror in
+// sync.
 watch(
   () => route.query,
   () => {
@@ -362,6 +365,15 @@ watch(
   },
   { deep: true },
 );
+
+// Re-fetch the tag-filter options whenever the active category changes so the
+// offered tags mirror what the currently-selected category can show; clearing
+// the category refetches the unscoped set. A tag still selected in the URL but
+// absent from the new options simply isn't rendered — results stay filtered
+// server-side, so no crash and no stale chip.
+watch(activeCategory, (categorySlug) => {
+  store.fetchTagOptions(categorySlug || undefined);
+});
 </script>
 
 <style scoped>
