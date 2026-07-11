@@ -205,7 +205,22 @@
             </button>
           </div>
         </div>
-        <span class="ghrm-pkg-downloads">↓ {{ pkg.download_counter }}</span>
+        <div class="ghrm-pkg-footer">
+          <span
+            v-if="priceParts(pkg.price)"
+            class="ghrm-pkg-price"
+          >
+            <template v-if="priceParts(pkg.price)?.free">{{ $t('ghrm.free') }}</template>
+            <template v-else>
+              <span>{{ priceParts(pkg.price)?.text }}</span>
+              <span
+                v-if="priceParts(pkg.price)?.periodKey"
+                class="ghrm-pkg-period"
+              >{{ $t(priceParts(pkg.price)?.periodKey || '') }}</span>
+            </template>
+          </span>
+          <span class="ghrm-pkg-downloads">↓ {{ pkg.download_counter }}</span>
+        </div>
       </router-link>
     </div>
 
@@ -235,9 +250,35 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { formatMoney } from 'vbwd-view-component';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import { type GhrmListParams } from '../api/ghrmApi';
+import { type GhrmListParams, type GhrmPrice } from '../api/ghrmApi';
 import { catalogueBase } from '../catalogueBase';
+
+// Short "/ period" i18n key for a plan's billing period (none when unknown).
+const PERIOD_SUFFIX_KEY: Record<string, string> = {
+  DAILY: 'ghrm.perDay',
+  WEEKLY: 'ghrm.perWeek',
+  MONTHLY: 'ghrm.perMonth',
+  YEARLY: 'ghrm.perYear',
+};
+
+// Resolve a package price into flat render parts (i18n happens in the template
+// via $t). Returns null when there is no price element to show; otherwise a
+// uniform shape: free = show "Free"; else `text` (gross amount) + an optional
+// billing-period suffix key.
+function priceParts(
+  price: GhrmPrice | null | undefined,
+): { free: boolean; text: string; periodKey: string } | null {
+  if (!price || !price.price) return null;
+  const brutto = price.price.brutto;
+  if (!brutto) return { free: true, text: '', periodKey: '' };
+  return {
+    free: false,
+    text: formatMoney(brutto, { currency: price.price.currency }),
+    periodKey: (price.billing_period && PERIOD_SUFFIX_KEY[price.billing_period]) || '',
+  };
+}
 
 // The CMS vue-component widget renderer spreads the seeded `content_json.props`
 // onto this component, so the operator-configured page size arrives as a prop.
@@ -422,6 +463,9 @@ watch(activeCategory, (categorySlug) => {
 .ghrm-pkg-tag { padding: 2px 8px; border: 1px solid var(--color-border, #e9ecef); border-radius: 999px; background: var(--color-surface-muted, #f8f9fa); color: var(--color-text-muted, #6b7280); cursor: pointer; font-size: 11px; }
 .ghrm-pkg-tag--active { background: var(--color-primary, #3498db); color: var(--color-on-primary, #fff); border-color: var(--color-primary, #3498db); }
 .ghrm-pkg-downloads { font-size: 12px; color: var(--color-text-muted, #9ca3af); }
+.ghrm-pkg-footer { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: auto; }
+.ghrm-pkg-price { display: inline-flex; align-items: baseline; gap: 4px; font-size: 15px; font-weight: 700; color: var(--color-text, #1b2733); }
+.ghrm-pkg-period { font-size: 12px; font-weight: 500; color: var(--color-text-muted, #9ca3af); }
 .ghrm-pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; }
 .ghrm-pagination button { padding: 6px 14px; border: 1px solid var(--color-border, #d1d5db); border-radius: 4px; background: var(--color-surface, #fff); color: var(--color-text, #333); cursor: pointer; }
 .ghrm-pagination button:disabled { opacity: .4; cursor: default; }

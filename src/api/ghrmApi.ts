@@ -56,6 +56,7 @@ export interface GhrmPackage {
   tags?: string[];
   custom_fields?: Record<string, unknown>;
   custom_field_defs?: import('vbwd-view-component').CustomFieldDef[];
+  price?: GhrmPrice | null;
 }
 
 export interface GhrmPackageListItem {
@@ -70,6 +71,16 @@ export interface GhrmPackageListItem {
   latest_version: string | null;
   package_kind: 'single' | 'bundle';
   tags: string[];
+  price: GhrmPrice | null;
+}
+
+/** Price block for a package's linked tariff plan (from the core PriceFactory). */
+export interface GhrmPrice {
+  gross_amount: string;
+  net_amount: string;
+  billing_period: string | null;
+  display_price: number;
+  price: { brutto: number; netto: number; currency: string; taxes: unknown[] };
 }
 
 /** A catalogue tag filter option (GET /api/v1/ghrm/tags). */
