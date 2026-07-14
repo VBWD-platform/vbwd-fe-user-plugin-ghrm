@@ -74,33 +74,93 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     expect(wrapper.text()).toContain('Beta')
   })
 
-  it('ACTIVE shows connected chip and install panel with PAT steps + clone command', async () => {
+  it('ACTIVE shows a GitHub link + PAT steps + clone commands built from the membership repos', async () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'active' }],
-    })
-    mockGetPackageInstall.mockResolvedValue({
-      state: 'active',
-      package_slug: 'a',
-      github_username: 'octocat',
-      pat_steps: ['Go to github.com/settings/tokens', 'Grant Contents: read on the repo'],
-      clone_https: 'git clone https://octocat:<PAT>@github.com/acme/repo.git',
-      clone_ssh: 'git clone git@github.com:acme/repo.git',
+      memberships: [{
+        package_slug: 'a',
+        package_name: 'Alpha',
+        status: 'active',
+        access_kind: 'repo',
+        team: null,
+        repos: [{ owner: 'acme', repo: 'repo', github_url: 'https://github.com/acme/repo' }],
+      }],
     })
 
     const wrapper = await mountTab()
 
     const row = wrapper.find('[data-testid="membership-row"]')
     expect(row.find('[data-testid="chip-active"]').exists()).toBe(true)
-    expect(row.text()).toContain('ghrm.membership.activeLabel')
 
     const panel = row.find('[data-testid="install-panel"]')
     expect(panel.exists()).toBe(true)
-    expect(panel.text()).toContain('Grant Contents: read on the repo')
+    // GitHub hyperlink to the repo
+    const link = panel.find('[data-testid="github-repo-link"]')
+    expect(link.attributes('href')).toBe('https://github.com/acme/repo')
+    // clone commands built from repo + connected username (no install fetch)
     expect(panel.text()).toContain('git clone https://octocat:<PAT>@github.com/acme/repo.git')
+    expect(panel.text()).toContain('git clone git@github.com:acme/repo.git')
+    // the fragile per-package install endpoint is no longer used
+    expect(mockGetPackageInstall).not.toHaveBeenCalled()
+  })
 
-    expect(mockGetPackageInstall).toHaveBeenCalledWith('a')
+  it('ACTIVE bundle renders a GitHub link + clone block for EVERY repo', async () => {
+    mockGetAccessStatus.mockResolvedValue({
+      connected: true,
+      github_username: 'octocat',
+      memberships: [{
+        package_slug: 'bundle', package_name: 'Bundle', status: 'active', access_kind: 'repo', team: null,
+        repos: [
+          { owner: 'acme', repo: 'one', github_url: 'https://github.com/acme/one' },
+          { owner: 'acme', repo: 'two', github_url: 'https://github.com/acme/two' },
+        ],
+      }],
+    })
+
+    const wrapper = await mountTab()
+
+    const row = wrapper.find('[data-testid="membership-row"]')
+    expect(row.findAll('[data-testid="repo-block"]')).toHaveLength(2)
+    const links = row.findAll('[data-testid="github-repo-link"]').map((l) => l.attributes('href'))
+    expect(links).toEqual(['https://github.com/acme/one', 'https://github.com/acme/two'])
+    expect(row.text()).toContain('git clone git@github.com:acme/one.git')
+    expect(row.text()).toContain('git clone git@github.com:acme/two.git')
+  })
+
+  it('every ACTIVE membership shows its own panel (the Analytics-blank regression)', async () => {
+    mockGetAccessStatus.mockResolvedValue({
+      connected: true,
+      github_username: 'octocat',
+      memberships: [
+        { package_slug: 'a', package_name: 'Alpha', status: 'active', access_kind: 'repo', team: null,
+          repos: [{ owner: 'acme', repo: 'a', github_url: 'https://github.com/acme/a' }] },
+        { package_slug: 'b', package_name: 'Beta', status: 'active', access_kind: 'repo', team: null,
+          repos: [{ owner: 'acme', repo: 'b', github_url: 'https://github.com/acme/b' }] },
+      ],
+    })
+
+    const wrapper = await mountTab()
+
+    expect(wrapper.findAll('[data-testid="install-panel"]')).toHaveLength(2)
+  })
+
+  it('ACTIVE team-kind membership shows a team link, not per-repo clone blocks', async () => {
+    mockGetAccessStatus.mockResolvedValue({
+      connected: true,
+      github_username: 'octocat',
+      memberships: [{
+        package_slug: 't', package_name: 'TeamPkg', status: 'active', access_kind: 'team', repos: [],
+        team: { org: 'VBWD-platform', slug: 'vbwd-dev', url: 'https://github.com/orgs/VBWD-platform/teams/vbwd-dev' },
+      }],
+    })
+
+    const wrapper = await mountTab()
+
+    const row = wrapper.find('[data-testid="membership-row"]')
+    const teamLink = row.find('[data-testid="github-team-link"]')
+    expect(teamLink.attributes('href')).toBe('https://github.com/orgs/VBWD-platform/teams/vbwd-dev')
+    expect(row.find('[data-testid="repo-block"]').exists()).toBe(false)
   })
 
   it('INVITED shows invitation chip and a link to invitations_url', async () => {
@@ -191,15 +251,10 @@ describe('GhrmPlanGithubAccessTab — per-package membership states', () => {
     mockGetAccessStatus.mockResolvedValue({
       connected: true,
       github_username: 'octocat',
-      memberships: [{ package_slug: 'a', package_name: 'Alpha', status: 'active' }],
-    })
-    mockGetPackageInstall.mockResolvedValue({
-      state: 'active',
-      package_slug: 'a',
-      github_username: 'octocat',
-      pat_steps: ['step one'],
-      clone_https: 'git clone https://octocat:<PAT>@github.com/acme/repo.git',
-      clone_ssh: 'git clone git@github.com:acme/repo.git',
+      memberships: [{
+        package_slug: 'a', package_name: 'Alpha', status: 'active', access_kind: 'repo', team: null,
+        repos: [{ owner: 'acme', repo: 'repo', github_url: 'https://github.com/acme/repo' }],
+      }],
     })
 
     const wrapper = await mountTab()

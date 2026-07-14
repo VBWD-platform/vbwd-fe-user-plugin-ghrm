@@ -40,54 +40,100 @@
           </span>
         </div>
 
-        <!-- ACTIVE: connected + install panel (PAT steps + clone command) -->
+        <!-- ACTIVE: connected + install panel (GitHub link + clone guidance) -->
         <template v-if="normalizedStatus(membership) === 'active'">
           <p class="membership-copy">
             {{ $t('ghrm.membership.activeLabel') }}
           </p>
+
+          <!-- team-kind: the user is a team member — clone any team repo -->
           <div
-            v-if="activeInstall(membership.package_slug)"
+            v-if="membership.team"
+            class="install-panel"
+            data-testid="install-panel"
+          >
+            <p class="install-intro">
+              {{ $t('ghrm.membership.teamIntro', { team: membership.team.slug }) }}
+            </p>
+            <a
+              class="github-link"
+              data-testid="github-team-link"
+              :href="membership.team.url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ membership.team.org }}/{{ membership.team.slug }}
+            </a>
+          </div>
+
+          <!-- repo-kind: one GitHub link + clone block per repo (single/bundle) -->
+          <div
+            v-else
             class="install-panel"
             data-testid="install-panel"
           >
             <p class="install-intro">
               {{ $t('ghrm.membership.patIntro') }}
             </p>
-            <ol class="pat-steps">
-              <li
-                v-for="(step, index) in activeInstall(membership.package_slug)!.pat_steps"
-                :key="index"
-                class="pat-step"
+            <div
+              v-for="repo in (membership.repos || [])"
+              :key="`${repo.owner}/${repo.repo}`"
+              class="repo-block"
+              data-testid="repo-block"
+            >
+              <a
+                class="github-link"
+                data-testid="github-repo-link"
+                :href="repo.github_url"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                {{ step }}
-              </li>
-            </ol>
-            <div class="clone-command">
-              <span class="clone-label">{{ $t('ghrm.membership.cloneHttps') }}</span>
-              <div class="clone-row">
-                <pre class="clone-pre"><code>{{ activeInstall(membership.package_slug)!.clone_https }}</code></pre>
-                <button
-                  type="button"
-                  class="copy-btn"
-                  data-testid="copy-clone-https"
-                  @click="copyCommand(activeInstall(membership.package_slug)!.clone_https)"
-                >
-                  {{ $t('ghrm.membership.copy') }}
-                </button>
+                {{ repo.owner }}/{{ repo.repo }}
+              </a>
+              <ol class="pat-steps">
+                <li class="pat-step">
+                  {{ $t('ghrm.membership.patStep1') }}
+                </li>
+                <li class="pat-step">
+                  {{ $t('ghrm.membership.patStep2') }}
+                </li>
+                <li class="pat-step">
+                  {{ $t('ghrm.membership.patStep3', { repo: `${repo.owner}/${repo.repo}` }) }}
+                </li>
+                <li class="pat-step">
+                  {{ $t('ghrm.membership.patStep4') }}
+                </li>
+                <li class="pat-step">
+                  {{ $t('ghrm.membership.patStep5') }}
+                </li>
+              </ol>
+              <div class="clone-command">
+                <span class="clone-label">{{ $t('ghrm.membership.cloneHttps') }}</span>
+                <div class="clone-row">
+                  <pre class="clone-pre"><code>{{ cloneHttps(repo) }}</code></pre>
+                  <button
+                    type="button"
+                    class="copy-btn"
+                    data-testid="copy-clone-https"
+                    @click="copyCommand(cloneHttps(repo))"
+                  >
+                    {{ $t('ghrm.membership.copy') }}
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="clone-command">
-              <span class="clone-label">{{ $t('ghrm.membership.cloneSsh') }}</span>
-              <div class="clone-row">
-                <pre class="clone-pre"><code>{{ activeInstall(membership.package_slug)!.clone_ssh }}</code></pre>
-                <button
-                  type="button"
-                  class="copy-btn"
-                  data-testid="copy-clone-ssh"
-                  @click="copyCommand(activeInstall(membership.package_slug)!.clone_ssh)"
-                >
-                  {{ $t('ghrm.membership.copy') }}
-                </button>
+              <div class="clone-command">
+                <span class="clone-label">{{ $t('ghrm.membership.cloneSsh') }}</span>
+                <div class="clone-row">
+                  <pre class="clone-pre"><code>{{ cloneSsh(repo) }}</code></pre>
+                  <button
+                    type="button"
+                    class="copy-btn"
+                    data-testid="copy-clone-ssh"
+                    @click="copyCommand(cloneSsh(repo))"
+                  >
+                    {{ $t('ghrm.membership.copy') }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -141,12 +187,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useGhrmStore } from '../stores/useGhrmStore';
-import type { GhrmActiveInstall, GhrmMembership, GhrmMembershipStatus } from '../api/ghrmApi';
+import type { GhrmMembership, GhrmMembershipRepo, GhrmMembershipStatus } from '../api/ghrmApi';
 import GhrmGithubConnectButton from './GhrmGithubConnectButton.vue';
 
 defineProps<{ planSlug: string; planId: string }>();
 
 const store = useGhrmStore();
+
+const githubUsername = computed<string>(() => store.accessStatus?.github_username ?? '');
 
 const memberships = computed<GhrmMembership[]>(() => {
   const status = store.accessStatus;
@@ -165,9 +213,14 @@ function chipLabel(status: GhrmMembershipStatus): string {
   return status;
 }
 
-function activeInstall(slug: string): GhrmActiveInstall | null {
-  const payload = store.installPayloads[slug];
-  return payload && payload.state === 'active' ? payload : null;
+// Clone guidance is rendered directly from the membership's own ``repos`` +
+// the connected ``github_username`` (no fragile per-package install fetch).
+function cloneHttps(repo: GhrmMembershipRepo): string {
+  return `git clone https://${githubUsername.value}:<PAT>@github.com/${repo.owner}/${repo.repo}.git`;
+}
+
+function cloneSsh(repo: GhrmMembershipRepo): string {
+  return `git clone git@github.com:${repo.owner}/${repo.repo}.git`;
 }
 
 function invitationsUrl(membership: GhrmMembership): string | null {
@@ -176,11 +229,6 @@ function invitationsUrl(membership: GhrmMembership): string | null {
 
 onMounted(async () => {
   await store.fetchAccessStatus();
-  await Promise.all(
-    memberships.value
-      .filter((membership) => normalizedStatus(membership) === 'active')
-      .map((membership) => store.fetchInstall(membership.package_slug)),
-  );
 });
 
 function copyCommand(command: string): void {

@@ -109,6 +109,18 @@ export interface GhrmPaginated<T> {
 
 export type GhrmMembershipStatus = 'ACTIVE' | 'INVITED' | 'GRACE' | 'REVOKED' | 'ERROR';
 
+export interface GhrmMembershipRepo {
+  owner: string;
+  repo: string;
+  github_url: string;
+}
+
+export interface GhrmMembershipTeam {
+  org: string;
+  slug: string;
+  url: string;
+}
+
 export interface GhrmMembership {
   package_slug: string;
   package_name: string;
@@ -117,6 +129,11 @@ export interface GhrmMembership {
   grace_expires_at?: string | null;
   invitations_url?: string | null;
   last_error?: string | null;
+  // S? access enrichment: every membership self-describes its clone targets so
+  // the fe renders a GitHub link + clone guidance without a second fetch.
+  access_kind?: 'repo' | 'team';
+  repos?: GhrmMembershipRepo[];
+  team?: GhrmMembershipTeam | null;
 }
 
 export interface GhrmAccessStatus {

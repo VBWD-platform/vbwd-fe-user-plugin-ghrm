@@ -50,7 +50,13 @@
       "patIntro": "Создайте детальный персональный токен доступа с правом Contents: read для этого репозитория, затем клонируйте:",
       "cloneHttps": "Клонировать (HTTPS)",
       "cloneSsh": "Клонировать (SSH)",
-      "copy": "Копировать"
+      "copy": "Копировать",
+      "patStep1": "Open https://github.com/settings/personal-access-tokens/new",
+      "patStep2": "Choose 'Fine-grained tokens' and set an expiration",
+      "patStep3": "Under 'Repository access' select only {repo}",
+      "patStep4": "Under 'Permissions > Repository permissions' set 'Contents: Read'",
+      "patStep5": "Generate the token and copy it (you will not see it again)",
+      "teamIntro": "You're a member of team {team} — clone any of its repositories directly with your GitHub account:"
     },
     "bundle": "Комплект",
     "singlePackage": "Пакет"
